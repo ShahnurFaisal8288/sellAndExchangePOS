@@ -103,6 +103,7 @@
       integrity="sha256-+uGLJmmTKOqBr+2E6KDYs/NRsHxSkONXFHUL0fy2O/4="
       crossorigin="anonymous"
     />
+    @livewireStyles
   </head>
   <!--end::Head-->
   <!--begin::Body-->
@@ -390,7 +391,9 @@
       const sparkline3 = new ApexCharts(document.querySelector('#sparkline-3'), option_sparkline3);
       sparkline3.render();
     </script>
+
     <!--end::Script-->
+    @livewireScripts
   </body>
   <!--end::Body-->
 </html>

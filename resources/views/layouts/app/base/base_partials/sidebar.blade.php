@@ -59,7 +59,7 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('products.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>All Products</p>
               </a>
@@ -71,13 +71,13 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('categories.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>Categories</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('brands.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>Brands</p>
               </a>
@@ -98,19 +98,19 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('purchases.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>All Purchases</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('purchases.create') }}" class="nav-link">
                 <i class="nav-icon bi bi-plus-circle"></i>
                 <p>New Purchase</p>
               </a>
             </li>
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('suppliers.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>Suppliers</p>
               </a>
@@ -143,7 +143,7 @@
               </a>
             </li>
             <li class="nav-item">
-              <a href="" class="nav-link">
+              <a href="{{ route('customers.index') }}" class="nav-link">
                 <i class="nav-icon bi bi-circle"></i>
                 <p>Customers</p>
               </a>
