@@ -23,8 +23,8 @@
                         @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Brand <span class="text-danger">*</span></label>
-                        <select class="form-select @error('brand_id') is-invalid @enderror" wire:model="brand_id">
+                        <label class="form-label">Brand</label>
+                        <select class="form-select" wire:model="brand_id">
                             <option value="">Select brand</option>
                             @foreach ($brands as $brand)
                                 <option value="{{ $brand->id }}">{{ $brand->name }}</option>

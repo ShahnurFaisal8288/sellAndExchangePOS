@@ -47,7 +47,7 @@ class EditProductComponent extends Component
     {
         return [
             'category_id' => ['required', 'exists:categories,id'],
-            'brand_id' => ['required', 'exists:brands,id'],
+            // 'brand_id' => ['required', 'exists:brands,id'],
             'name' => ['required', 'string', 'max:150'],
             'model' => ['nullable', 'string', 'max:100'],
             'specification' => ['nullable', 'string'],

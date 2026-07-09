@@ -43,11 +43,11 @@
                     {{-- Brand --}}
                     <div class="col-md-6">
                         <label class="form-label">
-                            Brand <span class="text-danger">*</span>
+                            Brand
                         </label>
 
                         <select
-                            class="form-select @error('brand_id') is-invalid @enderror"
+                            class="form-select"
                             wire:model="brand_id"
                         >
                             <option value="">Select Brand</option>
