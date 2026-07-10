@@ -1,9 +1,16 @@
 <div>
     {{-- Flash message --}}
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
@@ -21,12 +28,8 @@
             {{-- Filters --}}
             <div class="row g-2 mb-3">
                 <div class="col-md-4">
-                    <input
-                        type="text"
-                        class="form-control"
-                        placeholder="Search by name, model, or IMEI/serial..."
-                        wire:model.live.debounce.400ms="search"
-                    >
+                    <input type="text" class="form-control" placeholder="Search by name, model, or IMEI/serial..."
+                        wire:model.live.debounce.400ms="search">
                 </div>
                 <div class="col-md-3">
                     <select class="form-select" wire:model.live="categoryFilter">
@@ -46,12 +49,8 @@
                 </div>
                 <div class="col-md-2 d-flex align-items-center">
                     <div class="form-check">
-                        <input
-                            class="form-check-input"
-                            type="checkbox"
-                            id="lowStockOnly"
-                            wire:model.live="lowStockOnly"
-                        >
+                        <input class="form-check-input" type="checkbox" id="lowStockOnly"
+                            wire:model.live="lowStockOnly">
                         <label class="form-check-label" for="lowStockOnly">
                             Low stock only
                         </label>
@@ -90,7 +89,8 @@
                                 <td class="text-end">{{ number_format($product->purchase_price, 2) }}</td>
                                 <td class="text-end">{{ number_format($product->sale_price, 2) }}</td>
                                 <td class="text-center">
-                                    <span class="badge {{ $product->is_low_stock ? 'text-bg-danger' : 'text-bg-secondary' }}">
+                                    <span
+                                        class="badge {{ $product->is_low_stock ? 'text-bg-danger' : 'text-bg-secondary' }}">
                                         {{ $product->stock_quantity }}
                                     </span>
                                     @if ($product->is_low_stock)
@@ -98,26 +98,21 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge {{ $product->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">
+                                    <span
+                                        class="badge {{ $product->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">
                                         {{ ucfirst($product->status) }}
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    <a
-    href="{{ route('products.edit', $product->id) }}"
-    wire:navigate
-    class="btn btn-outline-primary btn-sm"
->
-    <i class="bi bi-pencil"></i>
-</a>
-                                  <button
-    type="button"
-    class="btn btn-outline-danger btn-sm"
-    wire:click="delete({{ $product->id }})"
-    wire:confirm="Are you sure you want to delete this product?"
->
-    <i class="bi bi-trash"></i>
-</button>
+                                    <a href="{{ route('products.edit', $product->id) }}" wire:navigate
+                                        class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                        wire:click="delete({{ $product->id }})"
+                                        wire:confirm="Are you sure you want to delete this product?">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                             </tr>
                         @empty
                             <tr>
@@ -137,12 +132,8 @@
     </div>
 
     {{-- Create / Edit Modal --}}
-    <div
-        class="modal fade @if ($showModal) show d-block @endif"
-        tabindex="-1"
-        style="@if ($showModal) background: rgba(0,0,0,0.5); @endif"
-        wire:ignore.self
-    >
+    <div class="modal fade @if ($showModal) show d-block @endif" tabindex="-1"
+        style="@if ($showModal) background: rgba(0,0,0,0.5); @endif" wire:ignore.self>
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <form wire:submit="save">
@@ -156,7 +147,8 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Category <span class="text-danger">*</span></label>
-                                <select class="form-select @error('category_id') is-invalid @enderror" wire:model="category_id">
+                                <select class="form-select @error('category_id') is-invalid @enderror"
+                                    wire:model="category_id">
                                     <option value="">Select category</option>
                                     @foreach ($categories as $category)
                                         <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -166,7 +158,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Brand <span class="text-danger">*</span></label>
-                                <select class="form-select @error('brand_id') is-invalid @enderror" wire:model="brand_id">
+                                <select class="form-select @error('brand_id') is-invalid @enderror"
+                                    wire:model="brand_id">
                                     <option value="">Select brand</option>
                                     @foreach ($brands as $brand)
                                         <option value="{{ $brand->id }}">{{ $brand->name }}</option>
@@ -177,29 +170,29 @@
 
                             <div class="col-md-8">
                                 <label class="form-label">Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('name') is-invalid @enderror" wire:model="name">
+                                <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                    wire:model="name">
                                 @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Model</label>
-                                <input type="text" class="form-control @error('model') is-invalid @enderror" wire:model="model">
+                                <input type="text" class="form-control @error('model') is-invalid @enderror"
+                                    wire:model="model">
                                 @error('model') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label">Specification</label>
-                                <textarea
-                                    class="form-control @error('specification') is-invalid @enderror"
-                                    rows="2"
+                                <textarea class="form-control @error('specification') is-invalid @enderror" rows="2"
                                     placeholder="RAM, storage, color, condition, etc."
-                                    wire:model="specification"
-                                ></textarea>
+                                    wire:model="specification"></textarea>
                                 @error('specification') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">IMEI / Serial</label>
-                                <input type="text" class="form-control @error('imei_serial') is-invalid @enderror" wire:model="imei_serial">
+                                <input type="text" class="form-control @error('imei_serial') is-invalid @enderror"
+                                    wire:model="imei_serial">
                                 @error('imei_serial') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 <div class="form-text">Leave blank for items without one (e.g. computer parts).</div>
                             </div>
@@ -216,29 +209,39 @@
                                 <label class="form-label">Purchase Price <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">৳</span>
-                                    <input type="number" step="0.01" min="0" class="form-control @error('purchase_price') is-invalid @enderror" wire:model="purchase_price">
+                                    <input type="number" step="0.01" min="0"
+                                        class="form-control @error('purchase_price') is-invalid @enderror"
+                                        wire:model="purchase_price">
                                 </div>
-                                @error('purchase_price') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                @error('purchase_price') <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Sale Price <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">৳</span>
-                                    <input type="number" step="0.01" min="0" class="form-control @error('sale_price') is-invalid @enderror" wire:model="sale_price">
+                                    <input type="number" step="0.01" min="0"
+                                        class="form-control @error('sale_price') is-invalid @enderror"
+                                        wire:model="sale_price">
                                 </div>
-                                @error('sale_price') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                @error('sale_price') <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="col-md-4">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Stock Quantity <span class="text-danger">*</span></label>
-                                <input type="number" min="0" class="form-control @error('stock_quantity') is-invalid @enderror" wire:model="stock_quantity">
+                                <input type="number" min="0"
+                                    class="form-control @error('stock_quantity') is-invalid @enderror"
+                                    wire:model="stock_quantity">
                                 @error('stock_quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Min Stock Alert <span class="text-danger">*</span></label>
-                                <input type="number" min="0" class="form-control @error('min_stock_alert') is-invalid @enderror" wire:model="min_stock_alert">
+                                <input type="number" min="0"
+                                    class="form-control @error('min_stock_alert') is-invalid @enderror"
+                                    wire:model="min_stock_alert">
                                 @error('min_stock_alert') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -256,12 +259,8 @@
     </div>
 
     {{-- Delete Confirmation Modal --}}
-    <div
-        class="modal fade @if ($deletingId) show d-block @endif"
-        tabindex="-1"
-        style="@if ($deletingId) background: rgba(0,0,0,0.5); @endif"
-        wire:ignore.self
-    >
+    <div class="modal fade @if ($deletingId) show d-block @endif" tabindex="-1"
+        style="@if ($deletingId) background: rgba(0,0,0,0.5); @endif" wire:ignore.self>
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">

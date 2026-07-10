@@ -94,7 +94,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Discount (৳)</label>
-                        <input type="number" step="0.01" min="0" wire:model.live="discount" class="form-control">
+                        <input type="number"  min="0" wire:model.live="discount" class="form-control">
                     </div>
 
                     <div class="mb-3">
@@ -108,7 +108,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Paid Amount (৳)</label>
-                        <input type="number" wire:model.live="paidAmount" class="form-control">
+                        <input type="number"  min="0" wire:model.live="paidAmount" class="form-control">
                     </div>
 
                     <hr>

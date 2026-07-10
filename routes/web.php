@@ -17,6 +17,9 @@ use App\Livewire\Product\Sales\AllSaleComponent;
 use App\Livewire\Product\Sales\Customer\CustomerComponent;
 use App\Livewire\Product\Sales\NewSaleComponent;
 use App\Livewire\Product\Supplier\SupplierComponent;
+use App\Livewire\Reports\InventoryReportComponent;
+use App\Livewire\Reports\PurchaseReportComponent;
+use App\Livewire\Reports\SalesReportComponent;
 use Illuminate\Support\Facades\Route;
 
 // Route::view('/', 'welcome')->name('home');
@@ -57,6 +60,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/purchases/{id}/edit', PurchaseCreateComponent::class)->name('purchases.edit');
 
 
+     Route::get('/reports/sales', SalesReportComponent::class)->name('reports.sales');
+    Route::get('/reports/purchases', PurchaseReportComponent::class)->name('reports.purchases');
+    Route::get('/reports/inventory', InventoryReportComponent::class)->name('reports.inventory');
 
 });
 

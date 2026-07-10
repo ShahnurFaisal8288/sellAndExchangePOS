@@ -20,8 +20,8 @@ class NewSaleComponent extends Component
     public ?int $customerId = null;
 
     // Changed types slightly or cleaned up spacing to prevent casting errors from input strings
-    public $discount = 0;
-    public $paidAmount = 0;
+    public float $discount = 0;
+public float $paidAmount = 0;
 
     public string $paymentMethod = 'cash';
 

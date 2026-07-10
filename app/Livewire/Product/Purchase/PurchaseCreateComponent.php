@@ -101,10 +101,10 @@ class PurchaseCreateComponent extends Component
     {
         $total = 0;
         foreach ($this->items as $item) {
-            $total += ((int)($item['quantity'] ?? 0)) * ((float)($item['unit_price'] ?? 0));
+            $total += ((int) ($item['quantity'] ?? 0)) * ((float) ($item['unit_price'] ?? 0));
         }
         $this->total_amount = number_format($total, 2, '.', '');
-        $this->due_amount = number_format(max(0, $total - (float)$this->paid_amount), 2, '.', '');
+        $this->due_amount = number_format(max(0, $total - (float) $this->paid_amount), 2, '.', '');
     }
 
     public function save()
@@ -112,6 +112,22 @@ class PurchaseCreateComponent extends Component
         $this->validate();
 
         DB::transaction(function () {
+            $isEditing = (bool) $this->editingId;
+
+            // If editing, reverse the stock impact of the OLD items first,
+            // before we delete and recreate them below. Otherwise editing
+            // a purchase (e.g. changing quantity from 10 to 5) would leave
+            // stock incorrectly inflated by the original 10.
+            if ($isEditing) {
+                $existingPurchase = Purchase::with('items')->findOrFail($this->editingId);
+
+                foreach ($existingPurchase->items as $oldItem) {
+                    Product::where('id', $oldItem->product_id)
+                        ->lockForUpdate()
+                        ->decrement('stock_quantity', $oldItem->quantity);
+                }
+            }
+
             $purchase = Purchase::updateOrCreate(
                 ['id' => $this->editingId],
                 [
@@ -127,6 +143,7 @@ class PurchaseCreateComponent extends Component
             );
 
             $purchase->items()->delete();
+
             foreach ($this->items as $item) {
                 $purchase->items()->create([
                     'product_id' => $item['product_id'],
@@ -134,11 +151,32 @@ class PurchaseCreateComponent extends Component
                     'unit_price' => $item['unit_price'],
                     'subtotal' => $item['subtotal'],
                 ]);
+
+                $product = Product::where('id', $item['product_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                $qty = (int) $item['quantity'];
+                $unitPrice = (float) $item['unit_price'];
+
+                // --- Option A: latest cost (current default) ---
+                $product->purchase_price = $unitPrice;
+
+                // --- Option B: weighted average cost (swap in instead) ---
+                // $oldStock = $product->stock_quantity;
+                // $oldCost  = (float) $product->purchase_price;
+                // $newStock = $oldStock + $qty;
+                // $product->purchase_price = $newStock > 0
+                //     ? round((($oldStock * $oldCost) + ($qty * $unitPrice)) / $newStock, 2)
+                //     : $unitPrice;
+
+                $product->increment('stock_quantity', $qty);
+                $product->save();
             }
         });
 
         session()->flash('message', $this->editingId ? 'Purchase transaction updated.' : 'Purchase transaction registered.');
-        return $this->redirect(route('purchases.index'), navigate: true);
+        return $this->redirect(route('purchases.index'));
     }
     public function render()
     {

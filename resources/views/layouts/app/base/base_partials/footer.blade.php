@@ -5,8 +5,8 @@
         <!--end::To the end-->
         <!--begin::Copyright-->
         <strong>
-          Copyright &copy; 2014-2026&nbsp;
-          <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+          Copyright &copy;2026&nbsp;
+          <a href="https://logirexion.com/" class="text-decoration-none">logirexion</a>.
         </strong>
         All rights reserved.
         <!--end::Copyright-->

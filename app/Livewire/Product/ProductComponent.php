@@ -5,13 +5,14 @@ namespace App\Livewire\Product;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Database\QueryException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 #[Layout('layouts.app.base.base')]
 class ProductComponent extends Component
 {
-     use WithPagination;
+    use WithPagination;
 
     // ----- Filters -----
     public string $search = '';
@@ -41,20 +42,22 @@ class ProductComponent extends Component
     protected function rules(): array
     {
         return [
-            'category_id'     => ['required', 'exists:categories,id'],
-            'brand_id'        => ['required', 'exists:brands,id'],
-            'name'            => ['required', 'string', 'max:150'],
-            'model'           => ['nullable', 'string', 'max:100'],
-            'specification'   => ['nullable', 'string'],
-            'imei_serial'     => [
-                'nullable', 'string', 'max:100',
+            'category_id' => ['required', 'exists:categories,id'],
+            'brand_id' => ['required', 'exists:brands,id'],
+            'name' => ['required', 'string', 'max:150'],
+            'model' => ['nullable', 'string', 'max:100'],
+            'specification' => ['nullable', 'string'],
+            'imei_serial' => [
+                'nullable',
+                'string',
+                'max:100',
                 'unique:products,imei_serial,' . ($this->editingId ?? 'NULL') . ',id',
             ],
-            'purchase_price'  => ['required', 'numeric', 'min:0'],
-            'sale_price'      => ['required', 'numeric', 'min:0'],
-            'stock_quantity'  => ['required', 'integer', 'min:0'],
+            'purchase_price' => ['required', 'numeric', 'min:0'],
+            'sale_price' => ['required', 'numeric', 'min:0'],
+            'stock_quantity' => ['required', 'integer', 'min:0'],
             'min_stock_alert' => ['required', 'integer', 'min:0'],
-            'status'          => ['required', 'in:active,inactive'],
+            'status' => ['required', 'in:active,inactive'],
         ];
     }
 
@@ -88,18 +91,18 @@ class ProductComponent extends Component
     {
         $product = Product::findOrFail($productId);
 
-        $this->editingId       = $product->id;
-        $this->category_id     = (string) $product->category_id;
-        $this->brand_id        = (string) $product->brand_id;
-        $this->name            = $product->name;
-        $this->model           = (string) $product->model;
-        $this->specification   = (string) $product->specification;
-        $this->imei_serial     = (string) $product->imei_serial;
-        $this->purchase_price  = (string) $product->purchase_price;
-        $this->sale_price      = (string) $product->sale_price;
-        $this->stock_quantity  = (string) $product->stock_quantity;
+        $this->editingId = $product->id;
+        $this->category_id = (string) $product->category_id;
+        $this->brand_id = (string) $product->brand_id;
+        $this->name = $product->name;
+        $this->model = (string) $product->model;
+        $this->specification = (string) $product->specification;
+        $this->imei_serial = (string) $product->imei_serial;
+        $this->purchase_price = (string) $product->purchase_price;
+        $this->sale_price = (string) $product->sale_price;
+        $this->stock_quantity = (string) $product->stock_quantity;
         $this->min_stock_alert = (string) $product->min_stock_alert;
-        $this->status          = $product->status;
+        $this->status = $product->status;
 
         $this->showModal = true;
     }
@@ -143,18 +146,36 @@ class ProductComponent extends Component
     }
 
     public function delete(int $productId): void
-{
-    Product::findOrFail($productId)->delete();
+    {
+        $product = Product::findOrFail($productId);
 
-    session()->flash('success', 'Product deleted.');
-}
+        try {
+            $product->delete();
+        } catch (QueryException $e) {
+            if ($e->getCode() === '23503') {
+                session()->flash('error', "This product can't be deleted because it has existing purchase or sales records. You can deactivate it instead.");
+                return;
+            }
+            throw $e;
+        }
+
+        session()->flash('success', 'Product deleted.');
+    }
 
     private function resetForm(): void
     {
         $this->reset([
-            'editingId', 'category_id', 'brand_id', 'name', 'model',
-            'specification', 'imei_serial', 'purchase_price', 'sale_price',
-            'stock_quantity', 'min_stock_alert',
+            'editingId',
+            'category_id',
+            'brand_id',
+            'name',
+            'model',
+            'specification',
+            'imei_serial',
+            'purchase_price',
+            'sale_price',
+            'stock_quantity',
+            'min_stock_alert',
         ]);
         $this->status = 'active';
         $this->resetErrorBag();
@@ -171,15 +192,15 @@ class ProductComponent extends Component
                         ->orWhere('imei_serial', 'like', "%{$this->search}%");
                 });
             })
-            ->when($this->categoryFilter, fn ($query) => $query->where('category_id', $this->categoryFilter))
-            ->when($this->brandFilter, fn ($query) => $query->where('brand_id', $this->brandFilter))
-            ->when($this->lowStockOnly, fn ($query) => $query->lowStock())
+            ->when($this->categoryFilter, fn($query) => $query->where('category_id', $this->categoryFilter))
+            ->when($this->brandFilter, fn($query) => $query->where('brand_id', $this->brandFilter))
+            ->when($this->lowStockOnly, fn($query) => $query->lowStock())
             ->latest('id')
             ->paginate(10);
         return view('livewire.product.product-component', [
-            'products'   => $products,
+            'products' => $products,
             'categories' => Category::where('status', 'active')->orderBy('name')->get(),
-            'brands'     => Brand::where('status', 'active')->orderBy('name')->get(),
+            'brands' => Brand::where('status', 'active')->orderBy('name')->get(),
         ]);
     }
 }

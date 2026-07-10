@@ -2,47 +2,224 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Invoice {{ $sale->invoice_no }}</title>
+    {{-- Kept generic on purpose: browsers print the <title> as a default page
+         header, so including the invoice number here made it appear twice
+         when printing (once from the browser header, once from the body). --}}
+    <title>Invoice</title>
     <style>
         * { box-sizing: border-box; }
+
+        /* Force background colors/images to actually print instead of
+           being stripped to black & white by the browser's default print mode */
+        html {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+        }
+
+        :root {
+            --brand-orange: #e8542a;
+            --line-gray: #b8b8b8;
+            --text-dark: #212529;
+        }
+
         body {
             font-family: Arial, Helvetica, sans-serif;
-            color: #212529;
+            color: var(--text-dark);
             margin: 0;
-            padding: 24px;
+            padding: 28px 34px;
         }
+
+        .print-bar { text-align: right; margin-bottom: 16px; }
+        .print-bar button {
+            background: var(--brand-orange); color: #fff; border: none;
+            padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+
+        /* ---------- Header ---------- */
         .invoice-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            align-items: flex-start;
+            border-bottom: 3px solid var(--brand-orange);
+            padding-bottom: 14px;
+            margin-bottom: 18px;
         }
-        .invoice-header h2 { margin: 0; }
-        .muted { color: #6c757d; font-size: 13px; }
-        hr { border: none; border-top: 1px solid #dee2e6; margin: 16px 0; }
-        .bill-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-        th, td { border: 1px solid #dee2e6; padding: 8px 10px; font-size: 14px; }
-        th { background: #f8f9fa; text-align: left; }
-        .text-end { text-align: right; }
-        .text-center { text-align: center; }
-        .summary { width: 300px; margin-left: auto; }
-        .summary td { border: none; padding: 4px 10px; }
-        .summary .total-row td { font-weight: bold; font-size: 16px; border-top: 2px solid #212529; }
-        .due-row td { color: #dc3545; font-weight: bold; }
-        .footer-note { text-align: center; color: #6c757d; margin-top: 30px; font-size: 13px; }
-        .badge {
-            background: #6c757d; color: #fff; padding: 3px 8px;
-            border-radius: 4px; font-size: 12px; display: inline-block;
+        .invoice-no {
+            font-size: 14px;
+            font-weight: bold;
         }
-        .print-bar { text-align: right; margin-bottom: 16px; }
-        .print-bar button {
-            background: #0d6efd; color: #fff; border: none;
-            padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;
+        .invoice-no span { font-weight: normal; margin-left: 6px; }
+
+        .brand-block { text-align: center; flex: 1; }
+        .brand-block img { height: 100px; }
+        .brand-block .brand-name {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 2px 0 4px;
+        }
+        .brand-block .brand-name .amp { color: var(--brand-orange); }
+
+        .contact-block {
+            text-align: right;
+            font-size: 12.5px;
+            line-height: 1.7;
+        }
+        .contact-block .addr {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* ---------- Bill info ---------- */
+        .bill-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .bill-row .field { margin-bottom: 10px; }
+        .bill-row .field label {
+            display: inline-block;
+            width: 60px;
+            font-weight: bold;
+        }
+        .bill-row .left { width: 62%; }
+        .bill-row .right { width: 34%; text-align: left; }
+
+        /* ---------- Items table ---------- */
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+        }
+        table.items th {
+            background: var(--brand-orange);
+            color: #fff;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+        table.items th.text-center,
+        table.items td.text-center { text-align: center; }
+        table.items th.text-end,
+        table.items td.text-end { text-align: right; }
+
+        table.items td {
+            border-left: 1px solid #e2e2e2;
+            border-right: 1px solid #e2e2e2;
+            border-bottom: 1px solid #e2e2e2;
+            padding: 9px 12px;
+            font-size: 13.5px;
+            vertical-align: top;
+        }
+        table.items tbody tr:nth-child(even) { background: #fafafa; }
+        .muted { color: #6c757d; font-size: 12px; }
+
+        /* ---------- Summary rows (Advance / Total / Due) ---------- */
+        table.summary {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+        }
+        table.summary td {
+            border-left: 1px solid #e2e2e2;
+            border-right: 1px solid #e2e2e2;
+            border-bottom: 1px solid #e2e2e2;
+            padding: 8px 12px;
+            font-size: 13.5px;
+        }
+        table.summary td.label {
+            background: var(--brand-orange);
+            color: #fff;
+            font-weight: 600;
+            width: 78%;
+        }
+        table.summary td.value { text-align: right; }
+        table.summary tr.due-row td.value { color: #dc3545; font-weight: bold; }
+
+        /* ---------- IMEI / Warranty block ---------- */
+        .meta-block {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border: 1px solid #e2e2e2;
+            border-top: none;
+            padding: 12px;
+            font-size: 13px;
+        }
+        .imei-line { display: flex; align-items: center; margin-bottom: 8px; }
+        .imei-line label { font-weight: bold; margin-right: 10px; white-space: nowrap; }
+        .imei-boxes { display: flex; }
+        .imei-boxes span {
+            display: inline-block;
+            width: 20px; height: 24px;
+            border: 1px solid var(--line-gray);
+            margin-right: 2px;
+        }
+        .warranty-line, .guaranty-line {
+            margin-bottom: 4px;
+        }
+        .checkbox {
+            display: inline-block;
+            width: 12px; height: 12px;
+            border: 1px solid var(--text-dark);
+            margin-right: 6px;
+            position: relative;
+            top: 1px;
+        }
+        .checkbox.checked::after {
+            content: "✓";
+            position: absolute;
+            left: 1px; top: -4px;
+            font-size: 11px;
+        }
+
+        /* ---------- Footer ---------- */
+        .footer-note {
+            margin-top: 22px;
+            font-size: 12px;
+            text-align: center;
+            color: #333;
+            line-height: 1.6;
+        }
+        .footer-note .title { font-weight: bold; }
+        .footer-note .terms { margin: 6px 0; }
+        .footer-note .policy { font-weight: 600; margin-top: 8px; }
+
+        .signature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            font-size: 13px;
+        }
+        .signature-row .sig {
+            width: 220px;
+            text-align: center;
+            border-top: 1px solid var(--text-dark);
+            padding-top: 6px;
         }
 
         @media print {
             .print-bar { display: none; }
             body { padding: 0; }
+
+            /* Belt-and-suspenders: re-assert color printing on every
+               element that carries a background color, since some
+               browsers (Chrome/Edge) ignore the html-level rule for
+               certain elements unless "Background graphics" is also
+               checked in the print dialog. */
+            *, *::before, *::after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            @page {
+                margin: 12mm;
+            }
         }
     </style>
 </head>
@@ -52,46 +229,44 @@
         <button onclick="window.print()">Print</button>
     </div>
 
+    <!-- ===== Header ===== -->
     <div class="invoice-header">
-        <div>
-            <h2>MobileExchange</h2>
-            <div class="muted">Point of Sale — Electronics &amp; Mobile Device Retail</div>
+        <div class="invoice-no">
+            Invoice No. <span>{{ $sale->invoice_no }}</span>
         </div>
-        <div style="text-align:right">
-            <h3 style="margin:0">Invoice #{{ $sale->invoice_no }}</h3>
-            <div class="muted">{{ $sale->sale_date->format('d M, Y') }}</div>
+
+        <div class="brand-block">
+            <img src="{{ asset('assets/img/apple&series2.png.png') }}" alt="Apple &amp; Series">
+        </div>
+
+        <div class="contact-block">
+            <div>📞 01777432652, 01631110444</div>
+            <div>✉️ appleandseries@gmail.com</div>
+            <div>📘 facebook.com/apple&amp;series</div>
+            <div class="addr">Shop-34C, Block-C Level-4 Jamuna Future Park</div>
         </div>
     </div>
 
-    <hr>
-
+    <!-- ===== Bill info ===== -->
     <div class="bill-row">
-        <div>
-            <strong>Billed To</strong><br>
-            @if($sale->customer)
-                {{ $sale->customer->name }}<br>
-                {{ $sale->customer->phone }}<br>
-                @if($sale->customer->address){{ $sale->customer->address }}<br>@endif
-            @else
-                Walk-in Customer
-            @endif
+        <div class="left">
+            <div class="field"><label>Name</label>: {{ $sale->customer->name ?? 'Walk-in Customer' }}</div>
+            <div class="field"><label>Address</label>: {{ $sale->customer->address ?? '' }}</div>
         </div>
-        <div style="text-align:right">
-            <strong>Served By</strong><br>
-            {{ $sale->user->name }}<br>
-            <strong>Payment Method</strong><br>
-            <span class="badge">{{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}</span>
+        <div class="right">
+            <div class="field"><label>Date</label>: {{ $sale->sale_date->format('d M, Y') }}</div>
+            <div class="field"><label>Mobile</label>: {{ $sale->customer->phone ?? '' }}</div>
         </div>
     </div>
 
-    <table>
+    <!-- ===== Items table ===== -->
+    <table class="items">
         <thead>
             <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th class="text-center">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Subtotal</th>
+                <th style="width:8%">NO.</th>
+                <th>ITEM DESCRIPTION</th>
+                <th class="text-center" style="width:12%">QTY</th>
+                <th class="text-end" style="width:18%">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -100,27 +275,79 @@
                     <td>{{ $i + 1 }}</td>
                     <td>
                         {{ $item->product->name ?? 'Deleted Product' }} {{ $item->product->model ?? '' }}
-                        @if($item->product?->imei_serial)
-                            <br><span class="muted">IMEI: {{ $item->product->imei_serial }}</span>
-                        @endif
                     </td>
                     <td class="text-center">{{ $item->quantity }}</td>
-                    <td class="text-end">৳{{ number_format($item->unit_price, 2) }}</td>
                     <td class="text-end">৳{{ number_format($item->subtotal, 2) }}</td>
                 </tr>
             @endforeach
+            {{-- pad with a few blank rows so the table keeps the tall paper-form look --}}
+            @for($p = 0; $p < max(0, 6 - count($sale->items)); $p++)
+                <tr>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td class="text-center">&nbsp;</td>
+                    <td class="text-end">&nbsp;</td>
+                </tr>
+            @endfor
         </tbody>
     </table>
 
-    <table class="summary">
-        <tr><td>Subtotal</td><td class="text-end">৳{{ number_format($sale->total_amount + $sale->discount, 2) }}</td></tr>
-        <tr><td>Discount</td><td class="text-end">- ৳{{ number_format($sale->discount, 2) }}</td></tr>
-        <tr class="total-row"><td>Total</td><td class="text-end">৳{{ number_format($sale->total_amount, 2) }}</td></tr>
-        <tr><td>Paid</td><td class="text-end">৳{{ number_format($sale->paid_amount, 2) }}</td></tr>
-        <tr class="due-row"><td>Due</td><td class="text-end">৳{{ number_format($sale->due_amount, 2) }}</td></tr>
-    </table>
+    <!-- ===== IMEI / Warranty ===== -->
+    <div class="meta-block">
+        <div style="width:65%">
+            <div class="imei-line">
+                <label>IMEI NO:</label>
+                <div class="imei-boxes">
+                    @php $imei = $sale->items->first()->product->imei_serial ?? ''; @endphp
+                    @for($d = 0; $d < 15; $d++)
+                        <span>{{ $imei[$d] ?? '' }}</span>
+                    @endfor
+                </div>
+            </div>
+            <div class="warranty-line">
+                <span class="checkbox"></span> Warranty: Two year without parts
+            </div>
+            <div class="guaranty-line">
+                <span class="checkbox"></span> Guaranty: Fifteen days without display
+            </div>
+        </div>
 
-    <div class="footer-note">Thank you for your business!</div>
+        <div style="width:32%">
+            <table class="summary">
+                <tr>
+                    <td class="label">Advance</td>
+                    <td class="value">৳{{ number_format($sale->paid_amount, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Total</td>
+                    <td class="value">৳{{ number_format($sale->total_amount, 2) }}</td>
+                </tr>
+                <tr class="due-row">
+                    <td class="label" style="background:#6c757d;">Due</td>
+                    <td class="value">৳{{ number_format($sale->due_amount, 2) }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <div class="footer-note">
+        <div class="title">Dear Honorable Customer :</div>
+        <div class="terms">
+            We provide 15 days replacement warranty for manufacturing defects for phone. No claim or no warranty
+            will be entertained for physical damage/unauthorized software installation. Please check your device
+            before purchase/delivery. Sorry for your any inconvenience.
+        </div>
+        <div class="policy">
+            No cash back if you cash back 20-30% less.<br>
+            No physical damage no water damage phone Dead not allowed
+        </div>
+    </div>
+
+    <div class="signature-row">
+        <div class="sig">Customer Signature</div>
+        <div class="sig">Signature ({{ $sale->user->name }})</div>
+    </div>
 
 </body>
 </html>

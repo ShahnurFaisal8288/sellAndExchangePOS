@@ -127,28 +127,6 @@
         @include('layouts.app.base.base_partials.footer')
     </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <script
       src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"
       crossorigin="anonymous"
@@ -166,42 +144,81 @@
     <!--end::Required Plugin(Bootstrap 5)--><!--begin::Required Plugin(AdminLTE)-->
     <script src="{{ asset('assets/js/adminlte.js') }}"></script>
     <!--end::Required Plugin(AdminLTE)-->
-    <!--begin::OverlayScrollbars Configure-->
+
+    <!--begin::App Init (re-runs after Livewire SPA navigation)-->
     <script>
-      const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
-      const Default = {
-        scrollbarTheme: 'os-theme-light',
-        scrollbarAutoHide: 'leave',
-        scrollbarClickScroll: true,
-      };
-      document.addEventListener('DOMContentLoaded', function () {
-        const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
+      (() => {
+        'use strict';
 
-        // Disable OverlayScrollbars on mobile devices to prevent touch interference
-        const isMobile = window.innerWidth <= 992;
+        const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
+        const Default = {
+          scrollbarTheme: 'os-theme-light',
+          scrollbarAutoHide: 'leave',
+          scrollbarClickScroll: true,
+        };
 
-        if (
-          sidebarWrapper &&
-          OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined &&
-          !isMobile
-        ) {
-          OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
-            scrollbars: {
-              theme: Default.scrollbarTheme,
-              autoHide: Default.scrollbarAutoHide,
-              clickScroll: Default.scrollbarClickScroll,
-            },
-          });
+        // Keep a reference to the current OverlayScrollbars instance so we
+        // can destroy it before re-initializing (prevents double-binding
+        // when this runs again on livewire:navigated).
+        let osInstance = null;
+
+        function initOverlayScrollbars() {
+          const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
+          const isMobile = window.innerWidth <= 992;
+
+          if (osInstance) {
+            try {
+              osInstance.destroy();
+            } catch {
+              // instance may already be gone if the node was replaced
+            }
+            osInstance = null;
+          }
+
+          if (
+            sidebarWrapper &&
+            OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined &&
+            !isMobile
+          ) {
+            osInstance = OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
+              scrollbars: {
+                theme: Default.scrollbarTheme,
+                autoHide: Default.scrollbarAutoHide,
+                clickScroll: Default.scrollbarClickScroll,
+              },
+            });
+          }
         }
-      });
-    </script>
-    <!--end::OverlayScrollbars Configure-->
 
-    <!--begin::Color Mode Toggle-->
-    <!-- The light/dark/auto switcher ships in adminlte.js as the ColorMode
-     module (since 4.1) — no page script needed. Only the no-flash snippet
-     in <head> stays inline, because it must run before first paint. -->
-    <!--end::Color Mode Toggle-->
+        // Re-initialize AdminLTE's own bindings (treeview toggle, sidebar
+        // push-menu, etc.) in case they were only wired up on first load.
+        // AdminLTE 4 typically exposes a Layout/Treeview module on window;
+        // guard defensively since availability can vary by build.
+        function reinitAdminLTE() {
+          try {
+            window.adminlte?.Layout?.getOrCreateInstance?.(document.body)?.init?.();
+          } catch {
+            // no-op: safe to ignore if this API isn't present in your build
+          }
+        }
+
+        function initAll() {
+          initOverlayScrollbars();
+          reinitAdminLTE();
+        }
+
+        // First load
+        document.addEventListener('DOMContentLoaded', initAll);
+
+        // Livewire SPA-style navigation (wire:navigate) swaps the <body>
+        // content without a full page reload, so DOMContentLoaded never
+        // fires again. Without this, the sidebar dropdown / scrollbars
+        // stop working after the first navigation. Harmless no-op if
+        // wire:navigate isn't used anywhere in the app.
+        document.addEventListener('livewire:navigated', initAll);
+      })();
+    </script>
+    <!--end::App Init-->
 
     <!-- OPTIONAL SCRIPTS -->
 
@@ -210,18 +227,42 @@
       src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"
       crossorigin="anonymous"
     ></script>
-    <!-- sortablejs -->
     <script>
-      new Sortable(document.querySelector('.connectedSortable'), {
-        group: 'shared',
-        handle: '.card-header',
-      });
+      (() => {
+        'use strict';
 
-      const cardHeaders = document.querySelectorAll('.connectedSortable .card-header');
-      cardHeaders.forEach((cardHeader) => {
-        cardHeader.style.cursor = 'move';
-      });
+        let sortableInstance = null;
+
+        function initSortable() {
+          const el = document.querySelector('.connectedSortable');
+          if (!el) return;
+
+          if (sortableInstance) {
+            try {
+              sortableInstance.destroy();
+            } catch {
+              // element may already be gone
+            }
+            sortableInstance = null;
+          }
+
+          sortableInstance = new Sortable(el, {
+            group: 'shared',
+            handle: '.card-header',
+          });
+
+          document
+            .querySelectorAll('.connectedSortable .card-header')
+            .forEach((cardHeader) => {
+              cardHeader.style.cursor = 'move';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initSortable);
+        document.addEventListener('livewire:navigated', initSortable);
+      })();
     </script>
+
     <!-- apexcharts -->
     <script
       src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"
@@ -233,60 +274,80 @@
       // NOTICE!! DO NOT USE ANY OF THIS JAVASCRIPT
       // IT'S ALL JUST JUNK FOR DEMO
       // ++++++++++++++++++++++++++++++++++++++++++
+      (() => {
+        'use strict';
 
-      const sales_chart_options = {
-        series: [
-          {
-            name: 'Digital Goods',
-            data: [28, 48, 40, 19, 86, 27, 90],
-          },
-          {
-            name: 'Electronics',
-            data: [65, 59, 80, 81, 56, 55, 40],
-          },
-        ],
-        chart: {
-          height: 300,
-          type: 'area',
-          toolbar: {
-            show: false,
-          },
-        },
-        legend: {
-          show: false,
-        },
-        colors: ['#0d6efd', '#20c997'],
-        dataLabels: {
-          enabled: false,
-        },
-        stroke: {
-          curve: 'smooth',
-        },
-        xaxis: {
-          type: 'datetime',
-          categories: [
-            '2023-01-01',
-            '2023-02-01',
-            '2023-03-01',
-            '2023-04-01',
-            '2023-05-01',
-            '2023-06-01',
-            '2023-07-01',
-          ],
-        },
-        tooltip: {
-          x: {
-            format: 'MMMM yyyy',
-          },
-        },
-      };
+        let salesChartInstance = null;
 
-      const sales_chart = new ApexCharts(
-        document.querySelector('#revenue-chart'),
-        sales_chart_options,
-      );
-      sales_chart.render();
+        function initSalesChart() {
+          const el = document.querySelector('#revenue-chart');
+          if (!el) return;
+
+          if (salesChartInstance) {
+            try {
+              salesChartInstance.destroy();
+            } catch {
+              // no-op
+            }
+            salesChartInstance = null;
+          }
+
+          const sales_chart_options = {
+            series: [
+              {
+                name: 'Digital Goods',
+                data: [28, 48, 40, 19, 86, 27, 90],
+              },
+              {
+                name: 'Electronics',
+                data: [65, 59, 80, 81, 56, 55, 40],
+              },
+            ],
+            chart: {
+              height: 300,
+              type: 'area',
+              toolbar: {
+                show: false,
+              },
+            },
+            legend: {
+              show: false,
+            },
+            colors: ['#0d6efd', '#20c997'],
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              curve: 'smooth',
+            },
+            xaxis: {
+              type: 'datetime',
+              categories: [
+                '2023-01-01',
+                '2023-02-01',
+                '2023-03-01',
+                '2023-04-01',
+                '2023-05-01',
+                '2023-06-01',
+                '2023-07-01',
+              ],
+            },
+            tooltip: {
+              x: {
+                format: 'MMMM yyyy',
+              },
+            },
+          };
+
+          salesChartInstance = new ApexCharts(el, sales_chart_options);
+          salesChartInstance.render();
+        }
+
+        document.addEventListener('DOMContentLoaded', initSalesChart);
+        document.addEventListener('livewire:navigated', initSalesChart);
+      })();
     </script>
+
     <!-- jsvectormap -->
     <script
       src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js"
@@ -298,98 +359,131 @@
       integrity="sha256-XPpPaZlU8S/HWf7FZLAncLg2SAkP8ScUTII89x9D3lY="
       crossorigin="anonymous"
     ></script>
-    <!-- jsvectormap -->
     <script>
-      // World map by jsVectorMap
-      new jsVectorMap({
-        selector: '#world-map',
-        map: 'world',
-      });
+      (() => {
+        'use strict';
 
-      // Sparkline charts
-      const option_sparkline1 = {
-        series: [
-          {
-            data: [1000, 1200, 920, 927, 931, 1027, 819, 930, 1021],
-          },
-        ],
-        chart: {
-          type: 'area',
-          height: 50,
-          sparkline: {
-            enabled: true,
-          },
-        },
-        stroke: {
-          curve: 'straight',
-        },
-        fill: {
-          opacity: 0.3,
-        },
-        yaxis: {
-          min: 0,
-        },
-        colors: ['#DCE6EC'],
-      };
+        let sparkline1 = null;
+        let sparkline2 = null;
+        let sparkline3 = null;
 
-      const sparkline1 = new ApexCharts(document.querySelector('#sparkline-1'), option_sparkline1);
-      sparkline1.render();
+        function destroyIfExists(instance) {
+          if (!instance) return;
+          try {
+            instance.destroy();
+          } catch {
+            // no-op
+          }
+        }
 
-      const option_sparkline2 = {
-        series: [
-          {
-            data: [515, 519, 520, 522, 652, 810, 370, 627, 319, 630, 921],
-          },
-        ],
-        chart: {
-          type: 'area',
-          height: 50,
-          sparkline: {
-            enabled: true,
-          },
-        },
-        stroke: {
-          curve: 'straight',
-        },
-        fill: {
-          opacity: 0.3,
-        },
-        yaxis: {
-          min: 0,
-        },
-        colors: ['#DCE6EC'],
-      };
+        function initWorldMapAndSparklines() {
+          // World map by jsVectorMap
+          const mapEl = document.querySelector('#world-map');
+          if (mapEl && !mapEl.dataset.jvmInitialized) {
+            new jsVectorMap({
+              selector: '#world-map',
+              map: 'world',
+            });
+            mapEl.dataset.jvmInitialized = 'true';
+          }
 
-      const sparkline2 = new ApexCharts(document.querySelector('#sparkline-2'), option_sparkline2);
-      sparkline2.render();
+          // Sparkline charts
+          destroyIfExists(sparkline1);
+          destroyIfExists(sparkline2);
+          destroyIfExists(sparkline3);
+          sparkline1 = sparkline2 = sparkline3 = null;
 
-      const option_sparkline3 = {
-        series: [
-          {
-            data: [15, 19, 20, 22, 33, 27, 31, 27, 19, 30, 21],
-          },
-        ],
-        chart: {
-          type: 'area',
-          height: 50,
-          sparkline: {
-            enabled: true,
-          },
-        },
-        stroke: {
-          curve: 'straight',
-        },
-        fill: {
-          opacity: 0.3,
-        },
-        yaxis: {
-          min: 0,
-        },
-        colors: ['#DCE6EC'],
-      };
+          const el1 = document.querySelector('#sparkline-1');
+          if (el1) {
+            sparkline1 = new ApexCharts(el1, {
+              series: [
+                {
+                  data: [1000, 1200, 920, 927, 931, 1027, 819, 930, 1021],
+                },
+              ],
+              chart: {
+                type: 'area',
+                height: 50,
+                sparkline: {
+                  enabled: true,
+                },
+              },
+              stroke: {
+                curve: 'straight',
+              },
+              fill: {
+                opacity: 0.3,
+              },
+              yaxis: {
+                min: 0,
+              },
+              colors: ['#DCE6EC'],
+            });
+            sparkline1.render();
+          }
 
-      const sparkline3 = new ApexCharts(document.querySelector('#sparkline-3'), option_sparkline3);
-      sparkline3.render();
+          const el2 = document.querySelector('#sparkline-2');
+          if (el2) {
+            sparkline2 = new ApexCharts(el2, {
+              series: [
+                {
+                  data: [515, 519, 520, 522, 652, 810, 370, 627, 319, 630, 921],
+                },
+              ],
+              chart: {
+                type: 'area',
+                height: 50,
+                sparkline: {
+                  enabled: true,
+                },
+              },
+              stroke: {
+                curve: 'straight',
+              },
+              fill: {
+                opacity: 0.3,
+              },
+              yaxis: {
+                min: 0,
+              },
+              colors: ['#DCE6EC'],
+            });
+            sparkline2.render();
+          }
+
+          const el3 = document.querySelector('#sparkline-3');
+          if (el3) {
+            sparkline3 = new ApexCharts(el3, {
+              series: [
+                {
+                  data: [15, 19, 20, 22, 33, 27, 31, 27, 19, 30, 21],
+                },
+              ],
+              chart: {
+                type: 'area',
+                height: 50,
+                sparkline: {
+                  enabled: true,
+                },
+              },
+              stroke: {
+                curve: 'straight',
+              },
+              fill: {
+                opacity: 0.3,
+              },
+              yaxis: {
+                min: 0,
+              },
+              colors: ['#DCE6EC'],
+            });
+            sparkline3.render();
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', initWorldMapAndSparklines);
+        document.addEventListener('livewire:navigated', initWorldMapAndSparklines);
+      })();
     </script>
 
     <!--end::Script-->
