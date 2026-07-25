@@ -3,13 +3,16 @@
     // Add/remove patterns here as you add more routes — everything else
     // (menu-open + active classes) is derived automatically below.
     $sections = [
-        'products' => ['products.*', 'categories.*', 'brands.*'],
-        'purchases' => ['purchases.*', 'suppliers.*'],
-        'sales' => ['sales.*', 'customers.*'],
-        'exchanges' => ['exchanges.*'],
-        'reports' => ['reports.*'],
-        'admin' => ['staff.*', 'users.*', 'settings.*'],
-    ];
+    'products' => ['products.*', 'categories.*', 'brands.*'],
+     'purchases' => ['purchases.*', 'suppliers.*'],
+     'purchase_return' => [
+    'purchase_return.*',
+],
+    'sales' => ['sales.*', 'customers.*'],
+    'exchanges' => ['exchanges.*'],
+    'reports' => ['reports.*'],
+    'admin' => ['staff.*', 'users.*', 'settings.*'],
+];
 
     $activeSection = null;
     foreach ($sections as $key => $patterns) {
@@ -26,7 +29,7 @@
      wire:ignore, any Livewire morph/update elsewhere on the page can
      replace these DOM nodes and break AdminLTE's treeview toggle
      listeners, causing the dropdown to stop opening after an action. --}}
-<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark" wire:ignore>
     <!--begin::Sidebar Brand-->
     <div class="sidebar-brand">
         <a href="{{ route('dashboard') }}" class="brand-link d-flex align-items-center">
@@ -77,7 +80,7 @@
                                 <p>Low Stock Alerts</p>
                             </a>
                         </li>
-                        <li class="nav-item">
+                        {{-- <li class="nav-item">
                             <a href="{{ route('categories.index') }}"
                                 class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-circle"></i>
@@ -90,7 +93,7 @@
                                 <i class="nav-icon bi bi-circle"></i>
                                 <p>Brands</p>
                             </a>
-                        </li>
+                        </li> --}}
                     </ul>
                 </li>
                 <!--end::CATALOG-->
@@ -118,6 +121,20 @@
                                 class="nav-link {{ request()->routeIs('purchases.create') ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-plus-circle"></i>
                                 <p>New Purchase</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('purchase_return') }}"
+                                class="nav-link {{ request()->routeIs('purchase_return') ? 'active' : '' }}">
+                                <i class="nav-icon bi bi-plus-circle"></i>
+                                <p>Purchase Return</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('payment_create') }}"
+                                class="nav-link {{ request()->routeIs('payment_create') ? 'active' : '' }}">
+                                <i class="nav-icon bi bi-plus-circle"></i>
+                                <p>Payment Create</p>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -215,6 +232,13 @@
                                 class="nav-link {{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-circle"></i>
                                 <p>Inventory Report</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.profit_loss') }}"
+                                class="nav-link {{ request()->routeIs('reports.profit_loss') ? 'active' : '' }}">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>Profit And Loss Report</p>
                             </a>
                         </li>
                     </ul>

@@ -13,16 +13,23 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained('categories')->cascadeOnUpdate()->restrictOnDelete();
-            $table->foreignId('brand_id')->constrained('brands')->cascadeOnUpdate()->restrictOnDelete();
+
+            // Nullable: every product is created inline while entering a
+            // purchase, so category/brand aren't picked up front.
+            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->foreignId('brand_id')->nullable()->constrained('brands')->nullOnDelete();
+
             $table->string('name', 150);
-            $table->string('model', 100);
-            $table->text('specification')->nullable(); // RAM, storage, color, condition, etc.
-            $table->string('imei_serial', 100)->nullable(); // for phones/laptops
+            $table->string('model', 100)->nullable();
+
+            // Country of origin/manufacture, typed in during purchase entry.
+            // e.g. "US", "JP", "CN".
+            $table->string('country_code', 10)->nullable();
+
             $table->decimal('purchase_price', 10, 2);
-            $table->decimal('sale_price', 10, 2);
-            $table->integer('stock_quantity')->default(0); // running stock count
-            $table->integer('min_stock_alert')->default(0); // triggers low-stock warning
+            $table->decimal('sale_price', 10, 2)->default(0); // set later, not captured at purchase time
+            $table->integer('stock_quantity')->default(0);
+            $table->integer('min_stock_alert')->default(5);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });

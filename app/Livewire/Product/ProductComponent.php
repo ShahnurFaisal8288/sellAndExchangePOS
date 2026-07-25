@@ -9,6 +9,7 @@ use Illuminate\Database\QueryException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+
 #[Layout('layouts.app.base.base')]
 class ProductComponent extends Component
 {
@@ -181,26 +182,55 @@ class ProductComponent extends Component
         $this->resetErrorBag();
         $this->resetValidation();
     }
+
     public function render()
     {
         $products = Product::query()
-            ->with(['category', 'brand'])
+            // Eager load ONLY genuinely available IMEIs:
+            // not sold AND not returned. A returned IMEI must disappear
+            // from this list the same way a sold one does.
+            ->with([
+                'purchaseItemImeis' => function ($q) {
+                    $q->where('is_sold', false)
+                      ->where('is_returned', false);
+                }
+            ])
+            // Dynamic available-stock count, same corrected filter.
+            // This is the value your Blade view shows as "Stock" —
+            // it MUST exclude returned IMEIs or returns will never
+            // reduce the number on screen.
+            ->withCount([
+                'purchaseItemImeis as available_stock' => function ($q) {
+                    $q->where('is_sold', false)
+                      ->where('is_returned', false);
+                }
+            ])
             ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('model', 'like', "%{$this->search}%")
-                        ->orWhere('imei_serial', 'like', "%{$this->search}%");
+                $searchTerm = "%{$this->search}%";
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm)
+                        ->orWhere('model', 'like', $searchTerm)
+                        // Search ONLY genuinely available IMEIs
+                        ->orWhereHas('purchaseItemImeis', function ($imeiQuery) use ($searchTerm) {
+                            $imeiQuery->where('is_sold', false)
+                                ->where('is_returned', false)
+                                ->where('imei_serial', 'like', $searchTerm);
+                        });
                 });
             })
-            ->when($this->categoryFilter, fn($query) => $query->where('category_id', $this->categoryFilter))
-            ->when($this->brandFilter, fn($query) => $query->where('brand_id', $this->brandFilter))
-            ->when($this->lowStockOnly, fn($query) => $query->lowStock())
+            ->when($this->lowStockOnly, function ($query) {
+                // Filters by products where available (unsold, unreturned)
+                // IMEI count is <= min_stock_alert OR stock_quantity <= min_stock_alert
+                $query->where(function ($q) {
+                    $q->whereRaw('(SELECT COUNT(*) FROM purchase_item_imeis WHERE purchase_item_imeis.product_id = products.id AND is_sold = false AND is_returned = false) <= products.min_stock_alert')
+                        ->orWhere('stock_quantity', '<=', \DB::raw('min_stock_alert'));
+                });
+            })
             ->latest('id')
             ->paginate(10);
+
         return view('livewire.product.product-component', [
             'products' => $products,
-            'categories' => Category::where('status', 'active')->orderBy('name')->get(),
-            'brands' => Brand::where('status', 'active')->orderBy('name')->get(),
         ]);
     }
 }

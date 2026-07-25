@@ -8,7 +8,7 @@ class SaleItem extends Model
 {
     protected $table = 'sale_items';
     protected $fillable = [
-        'sale_id', 'product_id', 'quantity', 'unit_price', 'subtotal',
+        'sale_id', 'product_id', 'quantity', 'unit_price', 'subtotal','imei_serial'
     ];
 
     protected $casts = [
@@ -16,13 +16,13 @@ class SaleItem extends Model
         'subtotal'   => 'decimal:2',
     ];
 
-    public function sale()
-    {
-        return $this->belongsTo(Sale::class);
-    }
-
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class, 'sale_id');
     }
 }

@@ -2,74 +2,83 @@
 
 namespace App\Livewire\Product;
 
-use App\Models\Brand;
-use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.app.base.base')]
 class CreateProductComponent extends Component
 {
-    public string $category_id = '';
-    public string $brand_id = '';
-    public string $name = '';
-    public string $model = '';
-    public string $specification = '';
-    public string $imei_serial = '';
-    public string $purchase_price = '';
-    public string $sale_price = '';
-    public string $stock_quantity = '0';
-    public string $min_stock_alert = '0';
-    public string $status = 'active';
+    public $name = '';
+    public $country_code = '';
+    public $purchase_price = '';
+    public $sale_price = '';
+    public $stock_quantity = 0;
+    public $min_stock_alert = 5;
+    public $status = 'active';
+    public $color = '';
 
-    protected function rules(): array
+    private function validateForm(): void
     {
-        return [
-            'category_id'     => ['required', 'exists:categories,id'],
-            // 'brand_id'        => ['required', 'exists:brands,id'],
-            'name'            => ['required', 'string', 'max:150'],
-            'model'           => ['nullable', 'string', 'max:100'],
-            'specification'   => ['nullable', 'string'],
-            'imei_serial'     => ['nullable', 'string', 'max:100', 'unique:products,imei_serial'],
-            'purchase_price'  => ['required', 'numeric', 'min:0'],
-            'sale_price'      => ['required', 'numeric', 'min:0'],
-            'stock_quantity'  => ['required', 'integer', 'min:0'],
-            'min_stock_alert' => ['required', 'integer', 'min:0'],
-            'status'          => ['required', 'in:active,inactive'],
-        ];
-    }
+        $errors = [];
 
-    protected function messages(): array
-    {
-        return [
-            'imei_serial.unique' => 'This IMEI/serial is already assigned to another product.',
-        ];
+        if (blank($this->name)) {
+            $errors['name'] = 'Product name is required.';
+        }
+
+        if ($this->purchase_price === '' || $this->purchase_price === null || (float) $this->purchase_price < 0) {
+            $errors['purchase_price'] = 'Purchase price must be zero or more.';
+        }
+
+        if ($this->sale_price === '' || $this->sale_price === null || (float) $this->sale_price < 0) {
+            $errors['sale_price'] = 'Sale price must be zero or more.';
+        }
+
+        if ((int) $this->stock_quantity < 0) {
+            $errors['stock_quantity'] = 'Stock quantity must be zero or more.';
+        }
+
+        if ((int) $this->min_stock_alert < 0) {
+            $errors['min_stock_alert'] = 'Minimum stock alert must be zero or more.';
+        }
+
+        if (! in_array($this->status, ['active', 'inactive'], true)) {
+            $errors['status'] = 'Invalid status selected.';
+        }
+
+        if (! empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     public function save()
     {
-        $validated = $this->validate();
+        $this->validateForm();
 
-        // Normalize blanks to null for nullable text fields.
-        foreach (['model', 'specification', 'imei_serial'] as $field) {
-            if ($validated[$field] === '') {
-                $validated[$field] = null;
-            }
-        }
 
-        Product::create($validated);
+        $countryCode = ! empty($this->country_code) ? strtoupper(trim($this->country_code)) : null;
+        $color = ! empty($this->color) ? trim($this->color) : null;
+        Product::create([
+            'category_id' => null,
+            'brand_id' => null,
+            'name' => trim($this->name),
+            'country_code' => $countryCode,
+            'color' => $color,
+            'purchase_price' => $this->purchase_price,
+            'sale_price' => $this->sale_price,
+            'stock_quantity' => $this->stock_quantity,
+            'min_stock_alert' => $this->min_stock_alert,
+            'status' => $this->status,
+        ]);
 
-        session()->flash('success', 'Product created successfully.');
+        session()->flash('message', 'Product created successfully.');
 
         return $this->redirect(route('products.index'));
     }
 
     public function render()
     {
-        return view('livewire.product.create-product-component', [
-            'categories' => Category::where('status', 'active')->orderBy('name')->get(),
-            'brands'     => Brand::where('status', 'active')->orderBy('name')->get(),
-        ]);
+        return view('livewire.product.create-product-component');
     }
 }

@@ -14,7 +14,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card shadow-sm">
     <div class="card-body" id="invoice-content">
 
         <div class="d-flex justify-content-between mb-4">
@@ -43,30 +43,40 @@
             </div>
             <div class="col-md-6 text-md-end">
                 <strong>Served By</strong><br>
-                {{ $sale->user->name }}<br>
+                {{ $sale->user->name ?? 'N/A' }}<br>
                 <strong>Payment Method</strong><br>
                 <span class="badge text-bg-secondary">{{ ucfirst(str_replace('_', ' ', $sale->payment_method)) }}</span>
             </div>
         </div>
 
-        <table class="table table-bordered">
+        <table class="table table-bordered align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
-                    <th>Product</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-end">Unit Price</th>
-                    <th class="text-end">Subtotal</th>
+                    <th style="width: 50px;">#</th>
+                    <th>Product Details</th>
+                    <th class="text-center" style="width: 80px;">Qty</th>
+                    <th class="text-end" style="width: 140px;">Unit Price</th>
+                    <th class="text-end" style="width: 140px;">Subtotal</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($sale->items as $i => $item)
+                    @php
+                        // Prioritize the IMEI recorded directly on the sold line item, fall back to product
+                        $imei = $item->imei_serial ?? $item->product?->imei_serial ?? null;
+                    @endphp
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         <td>
-                            {{ $item->product->name ?? 'Deleted Product' }} {{ $item->product->model ?? '' }}
-                            @if($item->product?->imei_serial)
-                                <br><small class="text-muted">IMEI: {{ $item->product->imei_serial }}</small>
+                            <div class="fw-semibold">
+                                {{ $item->product->name ?? 'Deleted Product' }} {{ $item->product->model ?? '' }}
+                            </div>
+                            @if(!empty($imei))
+                                <div class="mt-1">
+                                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 11px;">
+                                        <i class="bi bi-barcode me-1"></i>IMEI: {{ $imei }}
+                                    </span>
+                                </div>
                             @endif
                         </td>
                         <td class="text-center">{{ $item->quantity }}</td>
@@ -114,16 +124,14 @@
         <p class="text-center text-muted small mb-0">Thank you for your business!</p>
     </div>
 </div>
+
 <script>
     document.addEventListener('livewire:init', () => {
         Livewire.on('payment-recorded', () => {
             const modalEl = document.getElementById('recordPaymentModal');
             bootstrap.Modal.getInstance(modalEl)?.hide();
-            location.reload(); // simplest way to refresh the invoice totals + payment history below
+            location.reload();
         });
     });
 </script>
 @endsection
-
-
-

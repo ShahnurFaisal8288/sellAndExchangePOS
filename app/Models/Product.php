@@ -10,9 +10,9 @@ class Product extends Model
     // use SoftDeletes;
     protected $table = 'products';
     protected $fillable = [
-        'category_id', 'brand_id', 'name', 'model', 'specification',
-        'imei_serial', 'purchase_price', 'sale_price', 'stock_quantity',
-        'min_stock_alert', 'status',
+        'category_id', 'brand_id', 'name', 'model', 'country_code',
+        'purchase_price', 'sale_price', 'stock_quantity',
+        'min_stock_alert', 'status','color'
     ];
 
     protected $casts = [
@@ -61,4 +61,8 @@ class Product extends Model
     {
         return $query->whereColumn('stock_quantity', '<=', 'min_stock_alert');
     }
+    public function purchaseItemImeis()
+{
+    return $this->hasMany(PurchaseItemImei::class, 'product_id');
+}
 }

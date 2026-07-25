@@ -2,15 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    {{-- Kept generic on purpose: browsers print the <title> as a default page
-         header, so including the invoice number here made it appear twice
-         when printing (once from the browser header, once from the body). --}}
     <title>Invoice</title>
     <style>
         * { box-sizing: border-box; }
 
-        /* Force background colors/images to actually print instead of
-           being stripped to black & white by the browser's default print mode */
         html {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -117,8 +112,15 @@
         }
         table.items tbody tr:nth-child(even) { background: #fafafa; }
         .muted { color: #6c757d; font-size: 12px; }
+        .item-imei-tag {
+            font-size: 11px;
+            color: #495057;
+            margin-top: 2px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
 
-        /* ---------- Summary rows (Advance / Total / Due) ---------- */
+        /* ---------- Summary rows ---------- */
         table.summary {
             width: 100%;
             border-collapse: collapse;
@@ -135,7 +137,7 @@
             background: var(--brand-orange);
             color: #fff;
             font-weight: 600;
-            width: 78%;
+            width: 65%;
         }
         table.summary td.value { text-align: right; }
         table.summary tr.due-row td.value { color: #dc3545; font-weight: bold; }
@@ -150,14 +152,28 @@
             padding: 12px;
             font-size: 13px;
         }
-        .imei-line { display: flex; align-items: center; margin-bottom: 8px; }
-        .imei-line label { font-weight: bold; margin-right: 10px; white-space: nowrap; }
-        .imei-boxes { display: flex; }
+        .imei-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .imei-line label {
+            font-weight: bold;
+            margin-right: 10px;
+            white-space: nowrap;
+            min-width: 65px;
+        }
+        .imei-boxes { display: flex; flex-wrap: wrap; gap: 2px; }
         .imei-boxes span {
-            display: inline-block;
-            width: 20px; height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 24px;
             border: 1px solid var(--line-gray);
-            margin-right: 2px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #fff;
         }
         .warranty-line, .guaranty-line {
             margin-bottom: 4px;
@@ -206,11 +222,6 @@
             .print-bar { display: none; }
             body { padding: 0; }
 
-            /* Belt-and-suspenders: re-assert color printing on every
-               element that carries a background color, since some
-               browsers (Chrome/Edge) ignore the html-level rule for
-               certain elements unless "Background graphics" is also
-               checked in the print dialog. */
             *, *::before, *::after {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -254,7 +265,7 @@
             <div class="field"><label>Address</label>: {{ $sale->customer->address ?? '' }}</div>
         </div>
         <div class="right">
-            <div class="field"><label>Date</label>: {{ $sale->sale_date->format('d M, Y') }}</div>
+            <div class="field"><label>Date</label>: {{ \Carbon\Carbon::parse($sale->sale_date)->format('d M, Y') }}</div>
             <div class="field"><label>Mobile</label>: {{ $sale->customer->phone ?? '' }}</div>
         </div>
     </div>
@@ -271,16 +282,32 @@
         </thead>
         <tbody>
             @foreach($sale->items as $i => $item)
+                @php
+                    // Resolve IMEI: First look in sale_item, then fallback to product relationship
+                    $itemImei = $item->imei_serial
+                        ?? optional($item->product->purchaseItemImeis->first())->imei_serial
+                        ?? '';
+                @endphp
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td>
-                        {{ $item->product->name ?? 'Deleted Product' }} {{ $item->product->model ?? '' }}
+                        <div>
+                            <strong>{{ $item->product->name ?? 'Deleted Product' }}</strong>
+                            {{ $item->product->model ?? '' }}
+                            @if(!empty($item->product->country_code))
+                                <span class="muted">({{ strtoupper($item->product->country_code) }})</span>
+                            @endif
+                        </div>
+                        @if($itemImei)
+                            <div class="item-imei-tag">IMEI: {{ $itemImei }}</div>
+                        @endif
                     </td>
                     <td class="text-center">{{ $item->quantity }}</td>
                     <td class="text-end">৳{{ number_format($item->subtotal, 2) }}</td>
                 </tr>
             @endforeach
-            {{-- pad with a few blank rows so the table keeps the tall paper-form look --}}
+
+            {{-- Pad with blank rows to retain structured invoice layout --}}
             @for($p = 0; $p < max(0, 6 - count($sale->items)); $p++)
                 <tr>
                     <td>&nbsp;</td>
@@ -292,35 +319,52 @@
         </tbody>
     </table>
 
-    <!-- ===== IMEI / Warranty ===== -->
+    <!-- ===== IMEI / Warranty & Summary Block ===== -->
     <div class="meta-block">
-        <div style="width:65%">
-            <div class="imei-line">
-                <label>IMEI NO:</label>
-                <div class="imei-boxes">
-                    @php $imei = $sale->items->first()->product->imei_serial ?? ''; @endphp
-                    @for($d = 0; $d < 15; $d++)
-                        <span>{{ $imei[$d] ?? '' }}</span>
-                    @endfor
+        <div style="width:60%">
+            @foreach($sale->items as $item)
+                @php
+                    $imeiStr = $item->imei_serial
+                        ?? optional($item->product->purchaseItemImeis->first())->imei_serial
+                        ?? '';
+                    $imeiDigits = str_split(substr(preg_replace('/[^0-9A-Za-z]/', '', $imeiStr), 0, 15));
+                @endphp
+                <div class="imei-line">
+                    <label>IMEI NO:</label>
+                    <div class="imei-boxes">
+                        @for($d = 0; $d < 15; $d++)
+                            <span>{{ $imeiDigits[$d] ?? '' }}</span>
+                        @endfor
+                    </div>
                 </div>
-            </div>
-            <div class="warranty-line">
-                <span class="checkbox"></span> Warranty: Two year without parts
+            @endforeach
+            <div class="warranty-line mt-2">
+                <span class="checkbox checked"></span> Warranty: Two year without parts
             </div>
             <div class="guaranty-line">
-                <span class="checkbox"></span> Guaranty: Fifteen days without display
+                <span class="checkbox checked"></span> Guaranty: Fifteen days without display
             </div>
         </div>
 
-        <div style="width:32%">
+        <div style="width:38%">
             <table class="summary">
-                <tr>
-                    <td class="label">Advance</td>
-                    <td class="value">৳{{ number_format($sale->paid_amount, 2) }}</td>
-                </tr>
+                @if(($sale->discount ?? 0) > 0)
+                    <tr>
+                        <td class="label">Subtotal</td>
+                        <td class="value">৳{{ number_format($sale->total_amount + $sale->discount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Discount</td>
+                        <td class="value">-৳{{ number_format($sale->discount, 2) }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <td class="label">Total</td>
                     <td class="value">৳{{ number_format($sale->total_amount, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Advance</td>
+                    <td class="value">৳{{ number_format($sale->paid_amount, 2) }}</td>
                 </tr>
                 <tr class="due-row">
                     <td class="label" style="background:#6c757d;">Due</td>
@@ -346,7 +390,7 @@
 
     <div class="signature-row">
         <div class="sig">Customer Signature</div>
-        <div class="sig">Signature ({{ $sale->user->name }})</div>
+        <div class="sig">Signature ({{ $sale->user->name ?? 'Authorized' }})</div>
     </div>
 
 </body>

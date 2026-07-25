@@ -21,7 +21,7 @@ class Sale extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
-        'discount' => 'decimal',
+        'discount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'due_amount' => 'decimal:2',
         'sale_date' => 'date',
@@ -37,10 +37,10 @@ class Sale extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function items()
-    {
-        return $this->hasMany(SaleItem::class);
-    }
+    // public function items()
+    // {
+    //     return $this->hasMany(SaleItem::class);
+    // }
 
     // A sale can have an associated exchange (with_receipt, warranty, trade_in)
     public function exchange()
@@ -50,5 +50,9 @@ class Sale extends Model
     public function payments()
     {
         return $this->hasMany(SalePayment::class);
+    }
+    public function items()
+    {
+        return $this->hasMany(SaleItem::class, 'sale_id');
     }
 }

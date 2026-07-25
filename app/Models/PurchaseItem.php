@@ -25,4 +25,9 @@ class PurchaseItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function imeis()
+    {
+        return $this->hasMany(PurchaseItemImei::class);
+    }
 }

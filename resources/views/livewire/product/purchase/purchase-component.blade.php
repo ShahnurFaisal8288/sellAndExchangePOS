@@ -47,12 +47,19 @@
                                             ${{ number_format($purchase->due_amount, 2) }}
                                         </td>
                                         <td class="text-end">
-                                            <a href="{{ route('purchases.edit', $purchase->id) }}" class="btn btn-sm btn-outline-primary" wire:navigate>
+                                            <!-- Return Button -->
+                                            @if($purchase->source_type !== 'supplier_return')
+                                                <a href="{{ route('purchase_return', $purchase->id) }}" class="btn btn-sm btn-outline-danger" title="Return Purchase" wire:navigate>
+                                                    <i class="bi bi-arrow-return-left"></i>
+                                                </a>
+                                            @endif
+
+                                            <a href="{{ route('purchases.edit', $purchase->id) }}" class="btn btn-sm btn-outline-primary" title="Edit Purchase" wire:navigate>
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <button wire:click="delete({{ $purchase->id }})"
                                                     wire:confirm="Are you sure you want to delete this purchase order?"
-                                                    class="btn btn-sm btn-outline-danger">
+                                                    class="btn btn-sm btn-outline-danger" title="Delete Purchase">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </td>

@@ -10,14 +10,17 @@ use App\Livewire\Product\EditProductComponent;
 use App\Livewire\Product\Exchanges\AllExchangeComponent;
 use App\Livewire\Product\Exchanges\NewExchangeComponent;
 use App\Livewire\Product\LowStockAlertComponent;
+use App\Livewire\Product\PaymentCreate\PaymentCreateComponent;
 use App\Livewire\Product\ProductComponent;
 use App\Livewire\Product\Purchase\PurchaseComponent;
 use App\Livewire\Product\Purchase\PurchaseCreateComponent;
+use App\Livewire\Product\Purchase\PurchaseReturnComponent;
 use App\Livewire\Product\Sales\AllSaleComponent;
 use App\Livewire\Product\Sales\Customer\CustomerComponent;
 use App\Livewire\Product\Sales\NewSaleComponent;
 use App\Livewire\Product\Supplier\SupplierComponent;
 use App\Livewire\Reports\InventoryReportComponent;
+use App\Livewire\Reports\ProfitAndLossReportComponent;
 use App\Livewire\Reports\PurchaseReportComponent;
 use App\Livewire\Reports\SalesReportComponent;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     Route::get('/purchases', PurchaseComponent::class)->name('purchases.index');
+    Route::get('/purchases/payment_create', PaymentCreateComponent::class)->name('payment_create');
     Route::get('/purchases/create', PurchaseCreateComponent::class)->name('purchases.create');
     Route::get('/purchases/{id}/edit', PurchaseCreateComponent::class)->name('purchases.edit');
 
@@ -63,6 +67,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
      Route::get('/reports/sales', SalesReportComponent::class)->name('reports.sales');
     Route::get('/reports/purchases', PurchaseReportComponent::class)->name('reports.purchases');
     Route::get('/reports/inventory', InventoryReportComponent::class)->name('reports.inventory');
+    Route::get('/reports/profit_loss', ProfitAndLossReportComponent::class)->name('reports.profit_loss');
+
+    Route::get('/purchase_return/{id?}', PurchaseReturnComponent::class)->name('purchase_return');
+
 
 });
 
