@@ -17,6 +17,7 @@ use App\Livewire\Product\Purchase\PurchaseCreateComponent;
 use App\Livewire\Product\Purchase\PurchaseReturnComponent;
 use App\Livewire\Product\Sales\AllSaleComponent;
 use App\Livewire\Product\Sales\Customer\CustomerComponent;
+use App\Livewire\Product\Sales\EditSaleComponent;
 use App\Livewire\Product\Sales\NewSaleComponent;
 use App\Livewire\Product\Supplier\SupplierComponent;
 use App\Livewire\Reports\InventoryReportComponent;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
    Route::get('/sales', AllSaleComponent::class)->name('sales.index');
     Route::get('/sales/create', NewSaleComponent::class)->name('sales.create');
     Route::get('/customers', CustomerComponent::class)->name('customers.index');
+    Route::get('/sales/{sale}/edit',EditSaleComponent::class)->name('sales.edit');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print');
 

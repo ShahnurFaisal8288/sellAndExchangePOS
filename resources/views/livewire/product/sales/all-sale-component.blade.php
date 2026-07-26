@@ -10,11 +10,8 @@
     <div class="card mb-3 shadow-sm">
         <div class="card-body row g-2">
             <div class="col-md-4">
-                <input
-                    wire:model.live.debounce.400ms="search"
-                    class="form-control"
-                    placeholder="Search product name, IMEI, invoice, or customer..."
-                >
+                <input wire:model.live.debounce.400ms="search" class="form-control"
+                    placeholder="Search product name, IMEI, invoice, or customer...">
             </div>
             <div class="col-md-3">
                 <input type="date" wire:model.live="dateFrom" class="form-control">
@@ -61,12 +58,14 @@
                                                 <span class="fw-semibold">
                                                     {{ $item->product->name ?? 'Product' }} {{ $item->product->model ?? '' }}
                                                 </span>
-                                                <span class="badge bg-light text-dark border ms-1">Qty: {{ $item->quantity }}</span>
+                                                <span class="badge bg-light text-dark border ms-1">Qty:
+                                                    {{ $item->quantity }}</span>
 
                                                 <!-- Display sold IMEI serial if attached -->
                                                 @if(!empty($item->imei_serial))
                                                     <div class="mt-1">
-                                                        <span class="badge bg-info text-dark font-monospace" style="font-size: 11px;">
+                                                        <span class="badge bg-info text-dark font-monospace"
+                                                            style="font-size: 11px;">
                                                             <i class="bi bi-barcode me-1"></i>IMEI: {{ $item->imei_serial }}
                                                         </span>
                                                     </div>
@@ -86,10 +85,16 @@
                                 <td>{{ \Carbon\Carbon::parse($sale->sale_date)->format('d M, Y') }}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ route('sales.show', $sale) }}" class="btn btn-outline-secondary" title="View Details">
+                                        <a href="{{ route('sales.show', $sale) }}" class="btn btn-outline-secondary"
+                                            title="View Details">
                                             <i class="bi bi-eye"></i> View
                                         </a>
-                                        <a href="{{ route('sales.print', $sale) }}" target="_blank" class="btn btn-outline-primary" title="Print Invoice">
+                                        <a href="{{ route('sales.edit', $sale) }}" class="btn btn-outline-warning"
+                                            title="Edit Sale">
+                                            <i class="bi bi-pencil-square"></i> Edit
+                                        </a>
+                                        <a href="{{ route('sales.print', $sale) }}" target="_blank"
+                                            class="btn btn-outline-primary" title="Print Invoice">
                                             <i class="bi bi-printer"></i>
                                         </a>
                                     </div>

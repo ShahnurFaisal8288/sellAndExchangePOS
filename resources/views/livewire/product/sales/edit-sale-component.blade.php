@@ -9,6 +9,16 @@
             </div>
         @endif
 
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-body">
+                <i class="bi bi-pencil-square me-1 text-warning"></i> Edit Sale
+                <span class="text-muted fw-normal">#{{ $sale->invoice_no }}</span>
+            </h5>
+            <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="bi bi-arrow-left me-1"></i> Back to Sales
+            </a>
+        </div>
+
         <div class="row g-4">
 
             {{-- Left Column: Product Search & Cart Table --}}
@@ -30,7 +40,6 @@
                             >
                         </div>
 
-                        {{-- Floating Search Results Dropdown (Dark Mode Safe) --}}
                         @if(count($this->searchResults) > 0)
                             <div
                                 x-show="open"
@@ -40,7 +49,6 @@
                             >
                                 <div class="list-group list-group-flush">
                                     @foreach($this->searchResults as $product)
-                                        {{-- CASE 1: Product has available unsold IMEIs --}}
                                         @if($product->purchaseItemImeis->isNotEmpty())
                                             <div class="list-group-item bg-body-secondary text-uppercase fw-bold text-muted small py-2 px-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
                                                 <span>
@@ -55,7 +63,6 @@
                                                 <span class="text-success fw-bold font-monospace">৳{{ number_format($product->sale_price, 2) }}</span>
                                             </div>
 
-                                            {{-- Individual selectable IMEI items --}}
                                             @foreach($product->purchaseItemImeis as $imei)
                                                 <button
                                                     type="button"
@@ -70,8 +77,6 @@
                                                     <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Add to Cart</span>
                                                 </button>
                                             @endforeach
-
-                                        {{-- CASE 2: Regular Product without tracking IMEIs --}}
                                         @else
                                             <button
                                                 type="button"
@@ -122,7 +127,6 @@
                                             <td class="py-3 px-4">
                                                 <div class="fw-semibold text-body">{{ $item['name'] }}</div>
 
-                                                {{-- Clearly display attached IMEI --}}
                                                 @if(!empty($item['imei']))
                                                     <div class="mt-1">
                                                         <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 font-monospace">
@@ -146,7 +150,6 @@
                                                 <input
                                                     type="number"
                                                     min="1"
-                                                    max="{{ !empty($item['imei_id']) ? 1 : $item['stock'] }}"
                                                     wire:change="updateQty('{{ $cartKey }}', $event.target.value)"
                                                     value="{{ $item['qty'] }}"
                                                     class="form-control form-control-sm text-center fw-bold bg-body text-body border-secondary border-opacity-25"
@@ -165,7 +168,7 @@
                                         <tr>
                                             <td colspan="5" class="text-center text-muted py-5">
                                                 <i class="bi bi-basket display-6 d-block text-secondary opacity-50 mb-2"></i>
-                                                Cart is currently empty. Scan an IMEI or search product above.
+                                                Cart is empty. Scan an IMEI or search product above.
                                             </td>
                                         </tr>
                                     @endforelse
@@ -185,7 +188,6 @@
                     </div>
                     <div class="card-body p-4">
 
-                        {{-- Customer selection with toggle --}}
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label mb-0 fw-bold text-body">Customer</label>
@@ -224,7 +226,7 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold text-body">Discount (৳)</label>
-                            <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.500ms="discount" class="form-control bg-body text-body border-secondary border-opacity-25">
+                            <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.800ms="discount" class="form-control bg-body text-body border-secondary border-opacity-25">
                             @error('discount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
 
@@ -239,12 +241,11 @@
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-body">Paid Amount (৳)</label>
-                            <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.500ms="paidAmount" class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace">
+                            <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.800ms="paidAmount" class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace">
                         </div>
 
                         <hr class="border-secondary opacity-10 my-4">
 
-                        {{-- Summary Row Calculations --}}
                         <div class="d-flex justify-content-between mb-2 text-muted small">
                             <span>Subtotal:</span>
                             <strong class="font-monospace text-body">৳{{ number_format($this->subtotal, 2) }}</strong>
@@ -265,16 +266,16 @@
                         @error('cart') <div class="text-danger small mb-3">{{ $message }}</div> @enderror
 
                         <button
-                            wire:click="confirmSale"
+                            wire:click="confirmUpdate"
                             wire:loading.attr="disabled"
-                            class="btn btn-success w-100 py-3 fs-6 fw-bold rounded-pill shadow-sm"
+                            class="btn btn-warning w-100 py-3 fs-6 fw-bold rounded-pill shadow-sm text-white"
                             @disabled(count($cart) === 0)
                         >
-                            <span wire:loading.remove wire:target="confirmSale">
-                                <i class="bi bi-check2-circle me-1"></i> Complete & Print Invoice
+                            <span wire:loading.remove wire:target="confirmUpdate">
+                                <i class="bi bi-arrow-repeat me-1"></i> Update Sale
                             </span>
-                            <span wire:loading wire:target="confirmSale">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span> Processing Sale...
+                            <span wire:loading wire:target="confirmUpdate">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving Changes...
                             </span>
                         </button>
                     </div>
