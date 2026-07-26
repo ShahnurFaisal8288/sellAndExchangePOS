@@ -20,7 +20,13 @@ class DashboardComponent extends Component
         // --- Today's snapshot ---
         $todaySummary = DB::table('sales')
             ->whereDate('sale_date', $today)
-            ->selectRaw('COUNT(*) as invoice_count, COALESCE(SUM(total_amount),0) as revenue, COALESCE(SUM(paid_amount),0) as collected, COALESCE(SUM(due_amount),0) as due')
+            ->selectRaw('
+        COUNT(*) as invoice_count,
+        COALESCE(SUM(total_amount),0) as revenue,
+        COALESCE(SUM(paid_amount),0) as collected,
+        COALESCE(SUM(due_amount),0) as due,
+        COALESCE(SUM(GREATEST(paid_amount - total_amount, 0)),0) as overpaid
+    ')
             ->first();
 
         // --- This month ---
@@ -31,7 +37,9 @@ class DashboardComponent extends Component
         // --- Outstanding balances ---
         $totalReceivableDue = DB::table('sales')->sum('due_amount');   // owed TO shop by customers
         $totalPayableDue = DB::table('purchases')->sum('due_amount'); // owed BY shop to suppliers
-
+        $totalAdvanceBalance = DB::table('sales')
+            ->selectRaw('COALESCE(SUM(GREATEST(paid_amount - total_amount, 0)),0) as balance')
+            ->value('balance');
         // --- Inventory health ---
         $totalProducts = Product::where('status', 'active')->count();
         $outOfStockCount = Product::where('status', 'active')->where('stock_quantity', 0)->count();
@@ -117,6 +125,7 @@ class DashboardComponent extends Component
             'topProducts' => $topProducts,
             'salesTrend' => $salesTrend,
             'exchangesThisWeek' => $exchangesThisWeek,
+            'totalAdvanceBalance' => $totalAdvanceBalance
         ]);
     }
 }

@@ -94,7 +94,7 @@ class ProfitAndLossReportComponent extends Component
             }
         }
 
-        $netSales = max(0, $grossRevenue - $totalDiscountGiven);
+        $netSales = $grossRevenue;
         $operatingProfit = $netSales - $totalCostOfGoods;
 
         $purchasesQuery = Purchase::query();
@@ -107,8 +107,8 @@ class ProfitAndLossReportComponent extends Component
         $totalLoss = $operatingProfit < 0 ? abs($operatingProfit) : 0;
 
         return [
-            'total_sales' => $totalSales,
-            'net_sales' => $netSales,
+            'total_sales' => $totalSales + $totalDiscountGiven,
+            'net_sales' => $totalSales,
             'total_discount_given' => $totalDiscountGiven,
             'total_cost_of_goods' => $totalCostOfGoods,
             'total_profit' => $totalProfit,

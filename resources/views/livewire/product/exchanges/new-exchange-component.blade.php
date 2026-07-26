@@ -166,8 +166,8 @@
 
                         {{-- Selected Product Banner --}}
                         @if($newProductId)
-                            <div class="alert alert-success bg-body-secondary border border-success border-opacity-25 d-flex justify-content-between align-items-center mb-0 text-body">
-                                <div>
+                            <div class="alert alert-success bg-body-secondary border border-success border-opacity-25 d-flex justify-content-between align-items-start mb-0 text-body">
+                                <div class="flex-grow-1">
                                     <div class="fw-bold fs-6 text-body">{{ $selectedProductName }}</div>
 
                                     @if($selectedImeiNumber || $selectedCountryCode || $selectedColor)
@@ -184,11 +184,25 @@
                                         </div>
                                     @endif
 
-                                    <div class="text-muted small mt-1">
-                                        Price: <strong class="text-success font-monospace">৳{{ number_format($newProductPrice, 2) }}</strong>
+                                    {{-- Editable selling price — lets the cashier negotiate a different
+                                         price than the catalog sale_price for this exchange --}}
+                                    <div class="mt-2" style="max-width: 180px;">
+                                        <label class="form-label small text-muted mb-1">Selling Price (৳)</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                x-on:focus="$event.target.select()"
+                                                wire:model.live.debounce.300ms="newProductPrice"
+                                                class="form-control fw-bold text-success font-monospace bg-body border-secondary border-opacity-25 @error('newProductPrice') is-invalid @enderror"
+                                            >
+                                        </div>
+                                        @error('newProductPrice') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
-                                <button type="button" wire:click="clearSelectedProduct" class="btn btn-outline-danger btn-sm rounded-circle">
+                                <button type="button" wire:click="clearSelectedProduct" class="btn btn-outline-danger btn-sm rounded-circle ms-2">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </div>
@@ -221,7 +235,7 @@
 
                         <hr class="border-secondary opacity-10 my-3">
 
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="fw-bold fs-6 text-body">
                                 @if($additionalPayment >= 0)
                                     Customer Pays:
@@ -233,6 +247,34 @@
                                 ৳{{ number_format(abs($additionalPayment), 2) }}
                             </span>
                         </div>
+
+                        {{-- Amount actually received now — only relevant when the customer
+                             owes a cash difference. Whatever isn't received becomes due_amount. --}}
+                        @if($additionalPayment > 0)
+                            <div class="mb-2">
+                                <label class="form-label fw-bold text-body">Amount Received Now (৳)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    x-on:focus="$event.target.select()"
+                                    wire:model.live.debounce.500ms="amountReceived"
+                                    class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace"
+                                    placeholder="0.00"
+                                >
+                                <div class="form-text">Leave blank or partial if the customer is leaving a balance due.</div>
+                            </div>
+
+                            @php
+                                $dueNow = max(0, $additionalPayment - (float) ($amountReceived ?: 0));
+                            @endphp
+                            @if($dueNow > 0)
+                                <div class="d-flex justify-content-between text-danger mb-3">
+                                    <span class="small fw-semibold">Due Balance:</span>
+                                    <strong class="fs-6 font-monospace">৳{{ number_format($dueNow, 2) }}</strong>
+                                </div>
+                            @endif
+                        @endif
 
                         <div class="mb-3">
                             <label class="form-label fw-bold text-body">Payment Method</label>

@@ -20,6 +20,7 @@ class NewExchangeComponent extends Component
     public bool $is_new_customer = false;
     public ?int $customerId = null;
     public string $new_customer_name = '';
+    public $amountReceived = 0;
     public string $new_customer_phone = '';
 
     // Old Product (Trade-In) - Logged text-only without adding to stock inventory
@@ -109,6 +110,11 @@ class NewExchangeComponent extends Component
         $this->recalculate();
     }
 
+    public function updatedAmountReceived()
+{
+    $this->amountReceived = is_numeric($this->amountReceived) ? max(0, (float) $this->amountReceived) : 0;
+}
+
     public function clearSelectedProduct()
     {
         $this->newProductId = null;
@@ -189,22 +195,23 @@ class NewExchangeComponent extends Component
             $returnVal = (float) $this->oldProductReturnValue;
             $newPrice = (float) $this->newProductPrice;
             $cashDifference = $this->additionalPayment;
-
+            $received = (float) $this->amountReceived;
             // Formulate old product description text
             $oldProductDescription = $this->oldProductName . ($this->oldProductImei ? " [IMEI: {$this->oldProductImei}]" : '');
 
             // 1. Outgoing Sale Record (Treating trade-in value as part of payment/discount mechanism)
-            $actualPaidAmount = $cashDifference > 0 ? $cashDifference : 0;
+            $actualPaidAmount = $cashDifference > 0 ? min($received, $cashDifference) : 0;
+            $actualDue = $cashDifference > 0 ? max(0, $cashDifference - $received) : 0;
             $saleCount = Sale::whereDate('created_at', today())->count();
 
             $sale = Sale::create([
                 'customer_id' => $finalCustomerId ?: null,
                 'user_id' => Auth::id(),
                 'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad($saleCount + 1, 4, '0', STR_PAD_LEFT),
-                'total_amount' => $newPrice,
+                 'total_amount' => max(0, $newPrice - $returnVal),
                 'discount' => $returnVal,
                 'paid_amount' => $actualPaidAmount,
-                'due_amount' => 0,
+                'due_amount' => $actualDue,
                 'payment_method' => $this->paymentMethod,
                 'sale_date' => now()->toDateString(),
             ]);
