@@ -151,12 +151,26 @@
                                                     type="number"
                                                     min="1"
                                                     wire:change="updateQty('{{ $cartKey }}', $event.target.value)"
+                                                    max="{{ !empty($item['imei_id']) ? 1 : $this->virtualStock(\App\Models\Product::find($item['product_id'])) }}"
                                                     value="{{ $item['qty'] }}"
                                                     class="form-control form-control-sm text-center fw-bold bg-body text-body border-secondary border-opacity-25"
                                                     @if(!empty($item['imei_id'])) readonly @endif
                                                 >
                                             </td>
-                                            <td class="text-end py-3 font-monospace">৳{{ number_format($item['price'], 2) }}</td>
+                                            <td class="text-end py-3">
+    <div class="input-group input-group-sm justify-content-end" style="max-width: 130px; margin-left: auto;">
+        <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25 px-2">৳</span>
+        <input
+            type="number"
+            min="0"
+            step="0.01"
+            x-on:focus="$event.target.select()"
+            wire:change="updatePrice('{{ $cartKey }}', $event.target.value)"
+            value="{{ $item['price'] }}"
+            class="form-control form-control-sm text-end fw-semibold font-monospace bg-body text-body border-secondary border-opacity-25"
+        >
+    </div>
+</td>
                                             <td class="text-end py-3 fw-bold font-monospace text-body">৳{{ number_format($item['price'] * $item['qty'], 2) }}</td>
                                             <td class="text-center py-3 px-3">
                                                 <button wire:click="removeFromCart('{{ $cartKey }}')" class="btn btn-sm btn-outline-danger border-0 rounded-circle">

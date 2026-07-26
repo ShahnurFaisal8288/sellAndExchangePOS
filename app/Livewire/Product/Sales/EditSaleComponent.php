@@ -215,7 +215,20 @@ class EditSaleComponent extends Component
             $this->cart[$cartKey]['qty'] = (int) $qty;
         }
     }
+public function updatePrice($cartKey, $price)
+{
+    if (!isset($this->cart[$cartKey])) {
+        return;
+    }
 
+    $price = is_numeric($price) ? (float) $price : 0;
+
+    if ($price < 0) {
+        $price = 0;
+    }
+
+    $this->cart[$cartKey]['price'] = $price;
+}
     public function removeFromCart($cartKey)
     {
         unset($this->cart[$cartKey]);
