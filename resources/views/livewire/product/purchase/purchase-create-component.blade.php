@@ -16,18 +16,19 @@
 
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-body">
                 {{-- Card Header --}}
-                <div class="card-header bg-body border-bottom border-secondary border-opacity-10 py-3 px-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="card-title fw-bold mb-0">
-                            <i class="bi bi-file-earmark-text text-primary me-2"></i> {{ $editingId ? 'Modify' : 'New' }} Purchase Order
-                        </h4>
-                        <p class="text-muted small mb-0">Manage vendor details, line items, serial numbers, and costs.</p>
-                    </div>
-                    <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" wire:navigate>
-                        <i class="bi bi-arrow-left me-1"></i> Back to List
-                    </a>
-                </div>
 
+<div class="card-header bg-body border-bottom border-secondary border-opacity-10 py-3 px-4 d-flex justify-content-between align-items-center">
+    <div class="d-flex flex-column align-items-start">
+        <h4 class="card-title fw-bold mb-1 lh-base">
+            <i class="bi bi-file-earmark-text text-primary me-2"></i> {{ $editingId ? 'Modify' : 'New' }} Purchase Order
+        </h4>
+        <span class="text-muted small d-block">Manage vendor details, line items, serial numbers, and costs.</span>
+    </div>
+    <a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-pill flex-shrink-0" wire:navigate>
+        <i class="bi bi-arrow-left me-1"></i> Back to List
+    </a>
+</div>
+</div>
                 <div class="card-body p-4">
 
                     {{-- Header Info Section --}}

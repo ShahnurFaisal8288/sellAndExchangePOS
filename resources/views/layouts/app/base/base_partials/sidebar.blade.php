@@ -123,13 +123,13 @@
                                 <p>New Purchase</p>
                             </a>
                         </li>
-                        <li class="nav-item">
+                        {{-- <li class="nav-item">
                             <a href="{{ route('purchase_return') }}"
                                 class="nav-link {{ request()->routeIs('purchase_return') ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-plus-circle"></i>
                                 <p>Purchase Return</p>
                             </a>
-                        </li>
+                        </li> --}}
                         <li class="nav-item">
                             <a href="{{ route('payment_create') }}"
                                 class="nav-link {{ request()->routeIs('payment_create') ? 'active' : '' }}">

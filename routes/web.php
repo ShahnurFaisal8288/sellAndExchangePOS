@@ -69,7 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/inventory', InventoryReportComponent::class)->name('reports.inventory');
     Route::get('/reports/profit_loss', ProfitAndLossReportComponent::class)->name('reports.profit_loss');
 
-    Route::get('/purchase_return/{id?}', PurchaseReturnComponent::class)->name('purchase_return');
+    Route::get('/purchases/purchase_return/{id?}', PurchaseReturnComponent::class)->name('purchase_return');
 
 
 });
