@@ -3,6 +3,7 @@
 use App\Http\Controllers\ExchangeController;
 use App\Http\Controllers\SaleController;
 use App\Livewire\Dashboard\DashboardComponent;
+use App\Livewire\Product\Attribute\AttributeManager;
 use App\Livewire\Product\Brand\BrandComponent;
 use App\Livewire\Product\Category\CategoryComponent;
 use App\Livewire\Product\CreateProductComponent;
@@ -72,6 +73,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/profit_loss', ProfitAndLossReportComponent::class)->name('reports.profit_loss');
 
     Route::get('/purchases/purchase_return/{id?}', PurchaseReturnComponent::class)->name('purchase_return');
+
+
+    //attribute routes
+    Route::get('/attributes', AttributeManager::class)->name('attributes.index');
 
 
 });
