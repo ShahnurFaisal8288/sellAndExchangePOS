@@ -6,8 +6,8 @@ use App\Models\Attribute;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-#[Layout('layouts.app.base.base')]
 
+#[Layout('layouts.app.base.base')]
 class AttributeManager extends Component
 {
     use WithPagination;
@@ -16,14 +16,18 @@ class AttributeManager extends Component
     public $showModal = false;
     public $editingId = null;
 
-    public $name;
-    public $value;
+    public $name = '';
+    public $label = '';
+    public $value = '';
 
     protected function rules()
     {
         return [
             'name'  => 'required|string|max:255',
-            'value' => 'required|string|max:255',
+            'label' => $this->isColorAttribute ? 'required|string|max:255' : 'nullable|string|max:255',
+            'value' => $this->isColorAttribute
+                ? 'required|regex:/^#[0-9A-Fa-f]{6}$/'
+                : 'required|string|max:255',
         ];
     }
 
@@ -38,6 +42,13 @@ class AttributeManager extends Component
         $this->resetPage();
     }
 
+    public function updatedName()
+    {
+        // clear label/value when switching type so old data doesn't leak in
+        $this->label = '';
+        $this->value = '';
+    }
+
     public function create()
     {
         $this->resetForm();
@@ -50,6 +61,7 @@ class AttributeManager extends Component
 
         $this->editingId = $attribute->id;
         $this->name = $attribute->name;
+        $this->label = $attribute->label;
         $this->value = $attribute->value;
 
         $this->showModal = true;
@@ -63,6 +75,7 @@ class AttributeManager extends Component
             ['id' => $this->editingId],
             [
                 'name'  => $this->name,
+                'label' => $this->isColorAttribute ? $this->label : null,
                 'value' => $this->value,
             ]
         );
@@ -89,6 +102,7 @@ class AttributeManager extends Component
     {
         $this->editingId = null;
         $this->name = '';
+        $this->label = '';
         $this->value = '';
         $this->resetErrorBag();
     }
@@ -96,10 +110,9 @@ class AttributeManager extends Component
     public function render()
     {
         return view('livewire.product.attribute.attribute-manager', [
-            // renamed from 'attributes' -> 'attributeList' to avoid clashing
-            // with Blade's reserved $attributes (ComponentAttributeBag)
             'attributeList' => Attribute::when($this->search, function ($q) {
                     $q->where('name', 'like', "%{$this->search}%")
+                      ->orWhere('label', 'like', "%{$this->search}%")
                       ->orWhere('value', 'like', "%{$this->search}%");
                 })
                 ->latest()

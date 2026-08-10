@@ -11,13 +11,13 @@ use Livewire\Component;
 class CreateProductComponent extends Component
 {
     public $name = '';
-    public $country_code = '';
+    // public $country_code = '';
     public $purchase_price = '';
     public $sale_price = '';
     public $stock_quantity = 0;
     public $min_stock_alert = 5;
     public $status = 'active';
-    public $color = '';
+    // public $color = '';
 
     private function validateForm(): void
     {
@@ -57,14 +57,14 @@ class CreateProductComponent extends Component
         $this->validateForm();
 
 
-        $countryCode = ! empty($this->country_code) ? strtoupper(trim($this->country_code)) : null;
-        $color = ! empty($this->color) ? trim($this->color) : null;
+        // $countryCode = ! empty($this->country_code) ? strtoupper(trim($this->country_code)) : null;
+        // $color = ! empty($this->color) ? trim($this->color) : null;
         Product::create([
             'category_id' => null,
             'brand_id' => null,
             'name' => trim($this->name),
-            'country_code' => $countryCode,
-            'color' => $color,
+            // 'country_code' => $countryCode,
+            // 'color' => $color,
             'purchase_price' => $this->purchase_price,
             'sale_price' => $this->sale_price,
             'stock_quantity' => $this->stock_quantity,

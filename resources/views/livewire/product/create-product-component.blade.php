@@ -16,7 +16,7 @@
                     <input type="text" wire:model="name" class="form-control @error('name') is-invalid @enderror">
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-                <div class="col-md-4">
+                {{-- <div class="col-md-4">
                     <label class="form-label">Country Code</label>
                     <input type="text" wire:model="country_code" maxlength="10" placeholder="e.g. US, JP, CN"
                         class="form-control text-uppercase @error('country_code') is-invalid @enderror">
@@ -27,7 +27,7 @@
                     <input type="text" wire:model="color" placeholder="e.g. Black, Midnight Blue"
                         class="form-control @error('color') is-invalid @enderror">
                     @error('color') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
+                </div> --}}
 
                 <div class="col-md-6">
                     <label class="form-label">Purchase Price <span class="text-danger">*</span></label>

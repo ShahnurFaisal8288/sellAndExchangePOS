@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Product\Purchase;
 
+use App\Models\Attribute;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItemImei;
@@ -16,13 +17,12 @@ class PurchaseCreateComponent extends Component
 {
     public $editingId = null;
 
-    // Form fields
     public $supplier_id = '';
     public $is_new_supplier = false;
     public $new_supplier_name = '';
-    public $new_supplier_phone = ''; // typed free-text, e.g. "+880 1712-345678"
+    public $new_supplier_phone = '';
 
-    public $invoice_no = ''; // auto-generated, read-only in the UI
+    public $invoice_no = '';
     public $purchase_date = '';
     public $paid_amount = 0;
     public $total_amount = 0;
@@ -43,19 +43,18 @@ class PurchaseCreateComponent extends Component
             $this->due_amount = $purchase->due_amount;
 
             foreach ($purchase->items as $item) {
-                // Build a locked/unlocked IMEI list instead of plain strings.
-                // A sold or returned IMEI must never be silently editable or
-                // deletable from this form -- its history has to stay intact.
                 $imeiRows = $item->imeis->map(function ($imei) {
                     return [
                         'id' => $imei->id,
                         'imei_serial' => $imei->imei_serial,
+                        'color_attribute_id' => $imei->color_attribute_id,
+                        'country_attribute_id' => $imei->country_attribute_id,
                         'locked' => (bool) ($imei->is_sold || $imei->is_returned),
                     ];
                 })->values()->toArray();
 
                 if (empty($imeiRows)) {
-                    $imeiRows = [['id' => null, 'imei_serial' => '', 'locked' => false]];
+                    $imeiRows = [$this->blankImeiRow()];
                 }
 
                 $lockedCount = collect($imeiRows)->where('locked', true)->count();
@@ -65,16 +64,12 @@ class PurchaseCreateComponent extends Component
                     'is_new_product' => false,
                     'product_id' => $item->product_id,
                     'product_name' => '',
-                    'country_code' => $item->product?->country_code ?? '',
-                    'color' => $item->product?->color ?? '',
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
                     'sale_price' => $item->product?->sale_price ?? 0,
                     'subtotal' => $item->subtotal,
                     'sale_subtotal' => number_format($item->quantity * ($item->product?->sale_price ?? 0), 2, '.', ''),
                     'imeis' => $imeiRows,
-                    // Minimum quantity this line can be edited down to, because
-                    // this many units are already sold or returned and can't be undone here.
                     'min_quantity' => max(1, $lockedCount),
                 ];
             }
@@ -85,6 +80,17 @@ class PurchaseCreateComponent extends Component
         }
     }
 
+    private function blankImeiRow(): array
+    {
+        return [
+            'id' => null,
+            'imei_serial' => '',
+            'color_attribute_id' => '',
+            'country_attribute_id' => '',
+            'locked' => false,
+        ];
+    }
+
     public function addItem()
     {
         $this->items[] = [
@@ -92,14 +98,12 @@ class PurchaseCreateComponent extends Component
             'is_new_product' => false,
             'product_id' => '',
             'product_name' => '',
-            'country_code' => '',
-            'color' => '',
             'quantity' => 1,
             'unit_price' => 0,
             'sale_price' => 0,
             'subtotal' => 0,
             'sale_subtotal' => 0,
-            'imeis' => [['id' => null, 'imei_serial' => '', 'locked' => false]],
+            'imeis' => [$this->blankImeiRow()],
             'min_quantity' => 1,
         ];
         $this->calculateTotals();
@@ -107,8 +111,6 @@ class PurchaseCreateComponent extends Component
 
     public function removeItem($index)
     {
-        // Never allow removing a line that has sold/returned units attached --
-        // that would silently destroy their history via cascade delete.
         $lockedCount = collect($this->items[$index]['imeis'] ?? [])->where('locked', true)->count();
 
         if ($lockedCount > 0) {
@@ -134,19 +136,16 @@ class PurchaseCreateComponent extends Component
         $this->items[$index]['is_new_product'] = !$this->items[$index]['is_new_product'];
         $this->items[$index]['product_id'] = '';
         $this->items[$index]['product_name'] = '';
-        $this->items[$index]['country_code'] = '';
-        $this->items[$index]['color'] = '';
         $this->items[$index]['sale_price'] = 0;
     }
 
     public function addImeiField($index)
     {
-        $this->items[$index]['imeis'][] = ['id' => null, 'imei_serial' => '', 'locked' => false];
+        $this->items[$index]['imeis'][] = $this->blankImeiRow();
     }
 
     public function removeImeiField($index, $imeiIndex)
     {
-        // A locked (sold/returned) IMEI can't be removed from the form.
         if (!empty($this->items[$index]['imeis'][$imeiIndex]['locked'])) {
             $this->addError("items.$index.imeis", 'This IMEI is already sold or returned and cannot be removed.');
             return;
@@ -155,13 +154,14 @@ class PurchaseCreateComponent extends Component
         unset($this->items[$index]['imeis'][$imeiIndex]);
         $this->items[$index]['imeis'] = array_values($this->items[$index]['imeis']);
         if (empty($this->items[$index]['imeis'])) {
-            $this->items[$index]['imeis'] = [['id' => null, 'imei_serial' => '', 'locked' => false]];
+            $this->items[$index]['imeis'] = [$this->blankImeiRow()];
         }
     }
 
     public function updatedItems($value, $key)
     {
         $parts = explode('.', $key);
+
         if (count($parts) === 2) {
             $index = $parts[0];
             $field = $parts[1];
@@ -169,8 +169,6 @@ class PurchaseCreateComponent extends Component
             if ($field === 'product_id' && !empty($value)) {
                 $product = Product::find($value);
                 if ($product) {
-                    $this->items[$index]['country_code'] = $product->country_code ?? '';
-                    $this->items[$index]['color'] = $product->color ?? '';
                     $this->items[$index]['unit_price'] = $product->purchase_price ?? 0;
                     $this->items[$index]['sale_price'] = $product->sale_price ?? 0;
                 }
@@ -181,6 +179,7 @@ class PurchaseCreateComponent extends Component
                 if ((int) $value < $min) {
                     $this->items[$index]['quantity'] = $min;
                 }
+                $this->syncImeiRows($index);
             }
 
             if (in_array($field, ['quantity', 'unit_price', 'sale_price'])) {
@@ -193,6 +192,36 @@ class PurchaseCreateComponent extends Component
             }
         }
         $this->calculateTotals();
+    }
+
+    // keeps the imeis array length matching quantity, without touching locked rows
+    private function syncImeiRows($index)
+    {
+        $qty = (int) ($this->items[$index]['quantity'] ?? 1);
+        $rows = $this->items[$index]['imeis'];
+        $lockedCount = collect($rows)->where('locked', true)->count();
+        $target = max($qty, $lockedCount);
+
+        if (count($rows) < $target) {
+            for ($i = count($rows); $i < $target; $i++) {
+                $rows[] = $this->blankImeiRow();
+            }
+        } elseif (count($rows) > $target) {
+            // trim from the end, never trimming a locked row
+            while (count($rows) > $target) {
+                $lastUnlockedKey = null;
+                foreach ($rows as $k => $r) {
+                    if (empty($r['locked'])) {
+                        $lastUnlockedKey = $k;
+                    }
+                }
+                if ($lastUnlockedKey === null) break;
+                unset($rows[$lastUnlockedKey]);
+            }
+            $rows = array_values($rows);
+        }
+
+        $this->items[$index]['imeis'] = $rows;
     }
 
     public function updatedPaidAmount()
@@ -222,10 +251,19 @@ class PurchaseCreateComponent extends Component
             ->get(['id', 'name', 'stock_quantity', 'min_stock_alert']);
     }
 
+    public function getColorsProperty()
+    {
+        return Attribute::where('name', 'Color')->orderBy('label')->get();
+    }
+
+    public function getCountriesProperty()
+    {
+        return Attribute::where('name', 'Country')->orderBy('id')->get();
+    }
+
     private function generateInvoiceNumber(): string
     {
         $next = (Purchase::max('id') ?? 0) + 1;
-
         return 'PUR-' . str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
 
@@ -269,7 +307,6 @@ class PurchaseCreateComponent extends Component
                 $errors["items.$index.quantity"] = 'Quantity must be at least 1.';
             }
 
-            // Can't shrink a line below the number of units already sold/returned.
             if ($qty < $minQty) {
                 $errors["items.$index.quantity"] = "Cannot reduce below {$minQty}: that many unit(s) are already sold or returned.";
             }
@@ -282,12 +319,29 @@ class PurchaseCreateComponent extends Component
                 $errors["items.$index.sale_price"] = 'Sale price must be zero or more.';
             }
 
-            $imeiValues = array_values(array_filter(
-                array_map(fn($row) => trim((string) ($row['imei_serial'] ?? '')), $item['imeis'] ?? []),
-                fn($v) => $v !== ''
-            ));
-            if (count($imeiValues) > 0 && count($imeiValues) !== $qty) {
-                $errors["items.$index.imeis"] = 'Enter one IMEI/serial per unit, or leave all blank.';
+            // quantity drives IMEI + color count; country stays optional per unit
+            $rows = $item['imeis'] ?? [];
+
+            if (count($rows) !== $qty) {
+                $errors["items.$index.imeis"] = "Enter exactly {$qty} IMEI/serial row(s) to match quantity.";
+            }
+
+            $seen = [];
+            foreach ($rows as $ri => $row) {
+                $serial = trim((string) ($row['imei_serial'] ?? ''));
+
+                if ($serial === '') {
+                    $errors["items.$index.imeis.$ri.imei_serial"] = 'IMEI/Serial is required.';
+                } elseif (isset($seen[$serial])) {
+                    $errors["items.$index.imeis.$ri.imei_serial"] = 'Duplicate IMEI in this line.';
+                } else {
+                    $seen[$serial] = true;
+                }
+
+                if (blank($row['color_attribute_id'] ?? null)) {
+                    $errors["items.$index.imeis.$ri.color_attribute_id"] = 'Color is required.';
+                }
+                // country_attribute_id intentionally optional — no check
             }
         }
 
@@ -333,13 +387,8 @@ class PurchaseCreateComponent extends Component
                 $newQty = (int) $item['quantity'];
 
                 if ($item['is_new_product']) {
-                    $countryCode = !empty($item['country_code']) ? strtoupper(trim($item['country_code'])) : null;
-                    $color = !empty($item['color']) ? trim($item['color']) : null;
-
                     $product = Product::create([
                         'name' => $item['product_name'],
-                        'country_code' => $countryCode,
-                        'color' => $color,
                         'category_id' => null,
                         'brand_id' => null,
                         'purchase_price' => $item['unit_price'],
@@ -357,8 +406,6 @@ class PurchaseCreateComponent extends Component
                 $oldQty = 0;
 
                 if ($isEditing && $existingPurchaseItemId) {
-                    // Update the existing line in place instead of deleting it --
-                    // deleting would cascade and destroy sold/returned IMEI history.
                     $purchaseItem = $purchase->items()->findOrFail($existingPurchaseItemId);
                     $oldQty = (int) $purchaseItem->quantity;
 
@@ -379,15 +426,11 @@ class PurchaseCreateComponent extends Component
 
                 $keptPurchaseItemIds[] = $purchaseItem->id;
 
-                // Reconcile IMEI rows: keep locked (sold/returned) rows untouched,
-                // update text on existing unlocked rows, add/remove only unlocked rows.
                 $incomingImeis = $item['imeis'] ?? [];
-
-                // Remove unlocked rows the user deleted from the form
                 $incomingIds = collect($incomingImeis)->pluck('id')->filter()->all();
+
                 PurchaseItemImei::where('purchase_item_id', $purchaseItem->id)
                     ->where('is_sold', false)
-                    ->where('is_returned', false)
                     ->whereNotIn('id', $incomingIds ?: [0])
                     ->delete();
 
@@ -397,24 +440,30 @@ class PurchaseCreateComponent extends Component
                         continue;
                     }
 
+                    $colorId = $row['color_attribute_id'] ?: null;
+                    $countryId = $row['country_attribute_id'] ?: null;
+
                     if (!empty($row['id'])) {
-                        // Existing row: only update serial text if it's unlocked
                         $existing = PurchaseItemImei::find($row['id']);
-                        if ($existing && !$existing->is_sold && !$existing->is_returned) {
-                            $existing->update(['imei_serial' => $serial]);
+                        if ($existing && !$existing->is_sold) {
+                            $existing->update([
+                                'imei_serial' => $serial,
+                                'color_attribute_id' => $colorId,
+                                'country_attribute_id' => $countryId,
+                            ]);
                         }
-                        // locked rows are left completely alone
+                        // locked rows left untouched
                     } else {
-                        // Brand new IMEI row for this line
                         $purchaseItem->imeis()->create([
                             'product_id' => $productId,
                             'imei_serial' => $serial,
+                            'color_attribute_id' => $colorId,
+                            'country_attribute_id' => $countryId,
+                            'is_sold' => false,
                         ]);
                     }
                 }
 
-                // Apply only the net stock change for this line, not a blind
-                // decrement-then-increment, so nothing double-counts.
                 $delta = $newQty - $oldQty;
 
                 $product = Product::where('id', $productId)->lockForUpdate()->first();
@@ -426,9 +475,6 @@ class PurchaseCreateComponent extends Component
                 $product->save();
             }
 
-            // Any purchase item that existed before but is no longer in the
-            // submitted list was removed by the user via removeItem(), which
-            // already blocks removal of lines with locked IMEIs. Safe to delete.
             if ($isEditing) {
                 $purchase->items()
                     ->whereNotIn('id', $keptPurchaseItemIds ?: [0])
@@ -437,7 +483,7 @@ class PurchaseCreateComponent extends Component
                         Product::where('id', $oldItem->product_id)
                             ->lockForUpdate()
                             ->decrement('stock_quantity', $oldItem->quantity);
-                        $oldItem->delete(); // cascades imeis, safe: none were locked
+                        $oldItem->delete();
                     });
             }
         });

@@ -10,6 +10,7 @@ class Attribute extends Model
     protected $fillable = [
         'name',
         'value',
+        'label',
     ];
 
 }

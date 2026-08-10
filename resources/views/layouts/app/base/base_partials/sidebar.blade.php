@@ -3,7 +3,7 @@
     // Add/remove patterns here as you add more routes — everything else
     // (menu-open + active classes) is derived automatically below.
     $sections = [
-    'products' => ['products.*', 'categories.*', 'brands.*'],
+    'products' => ['products.*', 'categories.*', 'brands.*', 'attributes.*'],
      'purchases' => ['purchases.*', 'suppliers.*'],
      'purchase_return' => [
     'purchase_return.*',
@@ -68,18 +68,25 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
+                            <a href="{{ route('attributes.index') }}"
+                                class="nav-link {{ request()->routeIs('attributes.index') ? 'active' : '' }}">
+                                <i class="nav-icon bi bi-circle"></i>
+                                <p>Attributes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('products.index') }}"
                                 class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">
                                 <i class="nav-icon bi bi-circle"></i>
                                 <p>All Products</p>
                             </a>
                         </li>
-                        <li class="nav-item">
+                        {{-- <li class="nav-item">
                             <a href="{{ route('products.low-stock') }}" class="nav-link">
                                 <i class="nav-icon bi bi-exclamation-circle text-warning"></i>
                                 <p>Low Stock Alerts</p>
                             </a>
-                        </li>
+                        </li> --}}
                         {{-- <li class="nav-item">
                             <a href="{{ route('categories.index') }}"
                                 class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}">

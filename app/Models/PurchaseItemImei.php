@@ -11,6 +11,10 @@ class PurchaseItemImei extends Model
         'purchase_item_id',
         'product_id',
         'imei_serial',
+        'color_attribute_id',
+        'country_attribute_id',
+        'is_sold',
+        'sale_item_id',
     ];
 
     public function purchaseItem(): BelongsTo
@@ -21,5 +25,15 @@ class PurchaseItemImei extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function colorAttribute(): BelongsTo
+    {
+        return $this->belongsTo(Attribute::class, 'color_attribute_id');
+    }
+
+    public function countryAttribute(): BelongsTo
+    {
+        return $this->belongsTo(Attribute::class, 'country_attribute_id');
     }
 }
