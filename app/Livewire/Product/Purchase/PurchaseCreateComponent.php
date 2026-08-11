@@ -43,36 +43,38 @@ class PurchaseCreateComponent extends Component
             $this->due_amount = $purchase->due_amount;
 
             foreach ($purchase->items as $item) {
-                $imeiRows = $item->imeis->map(function ($imei) {
-                    return [
-                        'id' => $imei->id,
-                        'imei_serial' => $imei->imei_serial,
-                        'color_attribute_id' => $imei->color_attribute_id,
-                        'country_attribute_id' => $imei->country_attribute_id,
-                        'locked' => (bool) ($imei->is_sold || $imei->is_returned),
-                    ];
-                })->values()->toArray();
+    $imeiRows = $item->imeis
+        ->where('is_returned', false)          // <-- exclude returned units entirely
+        ->map(function ($imei) {
+            return [
+                'id' => $imei->id,
+                'imei_serial' => $imei->imei_serial,
+                'color_attribute_id' => $imei->color_attribute_id,
+                'country_attribute_id' => $imei->country_attribute_id,
+                'locked' => (bool) $imei->is_sold,   // only "sold" locks it now
+            ];
+        })->values()->toArray();
 
-                if (empty($imeiRows)) {
-                    $imeiRows = [$this->blankImeiRow()];
-                }
+    if (empty($imeiRows)) {
+        $imeiRows = [$this->blankImeiRow()];
+    }
 
-                $lockedCount = collect($imeiRows)->where('locked', true)->count();
+    $lockedCount = collect($imeiRows)->where('locked', true)->count();
 
-                $this->items[] = [
-                    'purchase_item_id' => $item->id,
-                    'is_new_product' => false,
-                    'product_id' => $item->product_id,
-                    'product_name' => '',
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'sale_price' => $item->product?->sale_price ?? 0,
-                    'subtotal' => $item->subtotal,
-                    'sale_subtotal' => number_format($item->quantity * ($item->product?->sale_price ?? 0), 2, '.', ''),
-                    'imeis' => $imeiRows,
-                    'min_quantity' => max(1, $lockedCount),
-                ];
-            }
+    $this->items[] = [
+        'purchase_item_id' => $item->id,
+        'is_new_product' => false,
+        'product_id' => $item->product_id,
+        'product_name' => '',
+        'quantity' => $item->quantity,
+        'unit_price' => $item->unit_price,
+        'sale_price' => $item->product?->sale_price ?? 0,
+        'subtotal' => $item->subtotal,
+        'sale_subtotal' => number_format($item->quantity * ($item->product?->sale_price ?? 0), 2, '.', ''),
+        'imeis' => $imeiRows,
+        'min_quantity' => max(1, $lockedCount),
+    ];
+}
         } else {
             $this->purchase_date = now()->format('Y-m-d');
             $this->invoice_no = $this->generateInvoiceNumber();

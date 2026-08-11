@@ -26,6 +26,7 @@ class NewSaleComponent extends Component
 
     // Financial fields
     public $discount = 0;
+    public array $payments = [];
     public $paidAmount = 0;
     public string $paymentMethod = 'cash';
 
@@ -181,94 +182,153 @@ class NewSaleComponent extends Component
     {
         $this->paidAmount = is_numeric($value) ? max(0, (float) $value) : 0;
     }
+    public function mount()
+{
+    $this->addPaymentRow();
+}
+    public function addPaymentRow()
+{
+    $this->payments[] = [
+        'method' => 'cash',
+        'amount' => 0,
+        'notes' => '',
+    ];
+}
+public function removePaymentRow($index)
+{
+    unset($this->payments[$index]);
+    $this->payments = array_values($this->payments);
 
-    public function confirmSale()
-    {
-        $rules = [
-            'cart' => 'required|array|min:1',
-            'paymentMethod' => 'required|in:cash,card,mobile_banking',
-            'discount' => 'nullable|numeric|min:0',
-            'paidAmount' => 'nullable|numeric|min:0',
-        ];
+    if (empty($this->payments)) {
+        $this->addPaymentRow();
+    }
+}
+public function updatedPayments($value, $key)
+{
+    $parts = explode('.', $key);
+    if (count($parts) === 2 && $parts[1] === 'amount') {
+        $amt = is_numeric($value) ? (float) $value : 0;
+        $this->payments[$parts[0]]['amount'] = max(0, $amt);
+    }
+}
+public function getPaidAmountProperty(): float
+{
+    return (float) collect($this->payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
+}
+
+   public function confirmSale()
+{
+    $rules = [
+        'cart' => 'required|array|min:1',
+        'payments' => 'required|array|min:1',
+        'payments.*.method' => 'required|in:cash,card,mobile_banking',
+        'payments.*.amount' => 'required|numeric|min:0',
+        'discount' => 'nullable|numeric|min:0',
+    ];
+
+    if ($this->is_new_customer) {
+        $rules['new_customer_name'] = 'required|string|max:255';
+        $rules['new_customer_phone'] = 'required|string|max:20';
+    }
+
+    $this->validate($rules, [
+        'cart.required' => 'Add at least one product to the cart before confirming.',
+        'payments.required' => 'Add at least one payment method.',
+        'new_customer_name.required' => 'Please provide the new customer name.',
+        'new_customer_phone.required' => 'Please provide the new customer phone number.',
+    ]);
+
+    $discount = (float) ($this->discount ?: 0);
+
+    if ($discount > $this->subtotal) {
+        $this->addError('discount', 'Discount cannot exceed subtotal.');
+        return;
+    }
+
+    $activePayments = collect($this->payments)
+        ->map(fn($p) => [
+            'payment_method' => $p['method'],
+            'amount' => (float) ($p['amount'] ?? 0),
+            'notes' => trim($p['notes'] ?? '') ?: null,
+        ])
+        ->filter(fn($p) => $p['amount'] > 0)
+        ->values();
+
+    $paidAmount = (float) $activePayments->sum('amount');
+
+    if ($paidAmount > $this->total) {
+        $this->addError('payments', 'Total paid (৳' . number_format($paidAmount, 2) . ') cannot exceed the sale total (৳' . number_format($this->total, 2) . ').');
+        return;
+    }
+
+    DB::transaction(function () use ($discount, $paidAmount, $activePayments) {
+        // Resolve Customer
+        $resolvedCustomerId = $this->customerId;
 
         if ($this->is_new_customer) {
-            $rules['new_customer_name'] = 'required|string|max:255';
-            $rules['new_customer_phone'] = 'required|string|max:20';
-        }
-
-        $this->validate($rules, [
-            'cart.required' => 'Add at least one product to the cart before confirming.',
-            'new_customer_name.required' => 'Please provide the new customer name.',
-            'new_customer_phone.required' => 'Please provide the new customer phone number.',
-        ]);
-
-        $discount = (float) ($this->discount ?: 0);
-        $paidAmount = (float) ($this->paidAmount ?: 0);
-
-        if ($discount > $this->subtotal) {
-            $this->addError('discount', 'Discount cannot exceed subtotal.');
-            return;
-        }
-
-        DB::transaction(function () use ($discount, $paidAmount) {
-            // Resolve Customer
-            $resolvedCustomerId = $this->customerId;
-
-            if ($this->is_new_customer) {
-                $customer = Customer::create([
-                    'name' => trim($this->new_customer_name),
-                    'phone' => trim($this->new_customer_phone),
-                ]);
-                $resolvedCustomerId = $customer->id;
-            }
-
-            // Invoice ID
-            $invoiceNo = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (Sale::whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT);
-
-            $sale = Sale::create([
-                'customer_id' => $resolvedCustomerId ?: null,
-                'user_id' => Auth::id() ?? 1,
-                'invoice_no' => $invoiceNo,
-                'total_amount' => $this->total,
-                'discount' => $discount,
-                'paid_amount' => $paidAmount,
-                'due_amount' => $this->due,
-                'payment_method' => $this->paymentMethod,
-                'sale_date' => now()->toDateString(),
+            $customer = Customer::create([
+                'name' => trim($this->new_customer_name),
+                'phone' => trim($this->new_customer_phone),
             ]);
 
-            foreach ($this->cart as $cartKey => $item) {
-                $productId = $item['product_id'];
+            $resolvedCustomerId = $customer->id;
+        }
 
-                $saleItem = SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $productId,
-                    'quantity' => $item['qty'],
-                    'unit_price' => $item['price'],
-                    'subtotal' => $item['price'] * $item['qty'],
-                    'imei_serial' => $item['imei'] ?? null,
+        // Invoice ID
+        $invoiceNo = 'INV-' . now()->format('Ymd') . '-' . str_pad((string) (Sale::whereDate('created_at', today())->count() + 1), 4, '0', STR_PAD_LEFT);
+
+        $sale = Sale::create([
+            'customer_id' => $resolvedCustomerId ?: null,
+            'user_id' => Auth::id() ?? 1,
+            'invoice_no' => $invoiceNo,
+            'total_amount' => $this->total,
+            'discount' => $discount,
+            'paid_amount' => $paidAmount,
+            'due_amount' => $this->due,
+            'payment_method' => $activePayments->first()['payment_method'] ?? 'cash',
+            'sale_date' => now()->toDateString(),
+        ]);
+
+        foreach ($activePayments as $payment) {
+            $sale->payments()->create([
+                ...$payment,
+                'user_id' => Auth::id() ?? 1,
+                'paid_date' => now()->toDateString(),
+            ]);
+        }
+
+        foreach ($this->cart as $cartKey => $item) {
+            $productId = $item['product_id'];
+
+            $saleItem = SaleItem::create([
+                'sale_id' => $sale->id,
+                'product_id' => $productId,
+                'quantity' => $item['qty'],
+                'unit_price' => $item['price'],
+                'subtotal' => $item['price'] * $item['qty'],
+                'imei_serial' => $item['imei'] ?? null,
+            ]);
+
+            // Mark the specific IMEI as sold and link it to the sale item
+            if (!empty($item['imei_id'])) {
+                PurchaseItemImei::where('id', $item['imei_id'])->update([
+                    'is_sold' => true,
+                    'sale_item_id' => $saleItem->id,
                 ]);
-
-                // Mark the specific IMEI as sold and link it to the sale item
-                if (!empty($item['imei_id'])) {
-                    PurchaseItemImei::where('id', $item['imei_id'])->update([
-                        'is_sold' => true,
-                        'sale_item_id' => $saleItem->id,
-                    ]);
-                }
-
-                // Decrement Product Stock
-                Product::where('id', $productId)->lockForUpdate()->decrement('stock_quantity', $item['qty']);
             }
 
-            session()->flash('success', "Sale invoice {$sale->invoice_no} processed successfully.");
+            // Decrement Product Stock
+            Product::where('id', $productId)->lockForUpdate()->decrement('stock_quantity', $item['qty']);
+        }
 
-            $this->reset(['cart', 'customerId', 'is_new_customer', 'new_customer_name', 'new_customer_phone', 'discount', 'paidAmount', 'productSearch']);
-            $this->paymentMethod = 'cash';
+        session()->flash('success', "Sale invoice {$sale->invoice_no} processed successfully.");
 
-            $this->dispatch('sale-completed', invoiceNo: $sale->invoice_no);
-        });
-    }
+        $this->reset(['cart', 'customerId', 'is_new_customer', 'new_customer_name', 'new_customer_phone', 'discount', 'payments', 'productSearch']);
+        $this->addPaymentRow();
+
+        $this->dispatch('sale-completed', invoiceNo: $sale->invoice_no);
+    });
+}
 
     public function render()
     {

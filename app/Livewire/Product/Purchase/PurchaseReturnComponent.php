@@ -267,9 +267,18 @@ class PurchaseReturnComponent extends Component
                 }
 
                 // Track partial-return progress on the original line item
-                DB::table('purchase_items')
-                    ->where('id', $item['purchase_item_id'])
-                    ->increment('returned_quantity', $qty);
+                $purchaseItemRow = DB::table('purchase_items')->where('id', $item['purchase_item_id'])->first();
+
+$newQuantity = max(0, $purchaseItemRow->quantity - $qty);
+$newSubtotal = max(0, $purchaseItemRow->subtotal - (float) $item['subtotal']);
+
+DB::table('purchase_items')
+    ->where('id', $item['purchase_item_id'])
+    ->update([
+        'returned_quantity' => $purchaseItemRow->returned_quantity + $qty,
+        'quantity'          => $newQuantity,
+        'subtotal'          => $newSubtotal,
+    ]);
 
                 // Lock the row, then decrement through Eloquent so the write
                 // is unambiguous (lockForUpdate chained onto ->update() does nothing)

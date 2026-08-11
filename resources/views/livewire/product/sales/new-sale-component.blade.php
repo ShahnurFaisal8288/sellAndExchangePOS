@@ -241,14 +241,60 @@
                             @error('discount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-body">Payment Method</label>
-                            <select wire:model="paymentMethod" class="form-select bg-body text-body border-secondary border-opacity-25">
-                                <option value="cash">Cash</option>
-                                <option value="card">Card</option>
-                                <option value="mobile_banking">Mobile Banking (bKash/Nagad/Rocket)</option>
-                            </select>
-                        </div>
+                       <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <label class="form-label fw-bold text-body mb-0">Payment (split across methods)</label>
+        <button type="button" wire:click="addPaymentRow" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold">
+            <i class="bi bi-plus-circle me-1"></i>Add Method
+        </button>
+    </div>
+
+    <div class="d-flex flex-column gap-2">
+        @foreach($payments as $index => $payment)
+            <div class="d-flex gap-2 align-items-start" wire:key="payment-row-{{ $index }}">
+                <select wire:model="payments.{{ $index }}.method" class="form-select form-select-sm bg-body text-body border-secondary border-opacity-25" style="max-width: 150px;">
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="mobile_banking">Mobile Banking</option>
+                </select>
+
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        x-on:focus="$event.target.select()"
+                        wire:model.live.debounce.300ms="payments.{{ $index }}.amount"
+                        placeholder="0.00"
+                        class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
+                    >
+                </div>
+
+                <input
+                    type="text"
+                    wire:model.blur="payments.{{ $index }}.notes"
+                    placeholder="Note (optional)"
+                    class="form-control form-control-sm bg-body text-body border-secondary border-opacity-25"
+                    style="max-width: 160px;"
+                >
+
+                @if(count($payments) > 1)
+                    <button type="button" wire:click="removePaymentRow({{ $index }})" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
+    @error('payments') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+
+    <div class="d-flex justify-content-between mt-2 small text-muted">
+        <span>Total Paid:</span>
+        <strong class="font-monospace text-body">৳{{ number_format($this->paidAmount, 2) }}</strong>
+    </div>
+</div>
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-body">Paid Amount (৳)</label>

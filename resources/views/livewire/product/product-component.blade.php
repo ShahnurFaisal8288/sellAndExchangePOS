@@ -20,8 +20,8 @@
                 <i class="bi bi-box-seam me-1"></i> Products
             </h3>
             <a href="{{ route('products.create') }}" wire:navigate class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Add Product
-    </a>
+                <i class="bi bi-plus-lg me-1"></i> Add Product
+            </a>
         </div>
 
         <div class="card-body">
@@ -63,11 +63,11 @@
                         @forelse ($products as $product)
                             @php
                                 // Check stock dynamically from unsold IMEIs if present, fallback to stock_quantity column
-                                $currentStock = $product->purchaseItemImeis->isNotEmpty() || $product->available_stock > 0
-                                    ? $product->available_stock
-                                    : $product->stock_quantity;
+                                $currentStock = $product->total_imei_count > 0
+        ? $product->available_stock
+        : $product->stock_quantity;
 
-                                $isLowStock = $currentStock <= $product->min_stock_alert;
+    $isLowStock = $currentStock <= $product->min_stock_alert;
                             @endphp
                             <tr wire:key="product-{{ $product->id }}">
                                 <td>
@@ -80,10 +80,13 @@
                                     @if ($product->purchaseItemImeis->isNotEmpty())
                                         <div class="d-flex flex-wrap gap-1">
                                             @foreach ($product->purchaseItemImeis->take(3) as $imei)
-                                                <span class="badge text-bg-light border font-monospace">{{ $imei->imei_serial }}</span>
+                                                <span
+                                                    class="badge text-bg-light border font-monospace">{{ $imei->imei_serial }}</span>
                                             @endforeach
                                             @if ($product->purchaseItemImeis->count() > 3)
-                                                <span class="badge text-bg-secondary">+{{ $product->purchaseItemImeis->count() - 3 }} more</span>
+                                                <span
+                                                    class="badge text-bg-secondary">+{{ $product->purchaseItemImeis->count() - 3 }}
+                                                    more</span>
                                             @endif
                                         </div>
                                     @else
@@ -101,15 +104,17 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge {{ $product->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">
+                                    <span
+                                        class="badge {{ $product->status === 'active' ? 'text-bg-success' : 'text-bg-secondary' }}">
                                         {{ ucfirst($product->status) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
-                    <a href="{{ route('products.edit', $product) }}" wire:navigate class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
-                </td>
+                                    <a href="{{ route('products.edit', $product) }}" wire:navigate
+                                        class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                </td>
 
                             </tr>
                         @empty

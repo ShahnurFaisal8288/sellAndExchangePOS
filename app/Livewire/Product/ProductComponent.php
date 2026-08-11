@@ -226,6 +226,11 @@ class ProductComponent extends Component
                         ->orWhere('stock_quantity', '<=', \DB::raw('min_stock_alert'));
                 });
             })
+            ->withCount([
+    'purchaseItemImeis as available_stock' => function ($q) {
+        $q->where('is_sold', false)->where('is_returned', false);
+    }
+])
             ->latest('id')
             ->paginate(10);
 
