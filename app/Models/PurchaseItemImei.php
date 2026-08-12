@@ -14,6 +14,7 @@ class PurchaseItemImei extends Model
         'color_attribute_id',
         'country_attribute_id',
         'is_sold',
+        'is_returned',
         'sale_item_id',
     ];
 

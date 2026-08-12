@@ -73,6 +73,12 @@
                                                     <div>
                                                         <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 me-2"><i class="bi bi-barcode me-1"></i> IMEI</span>
                                                         <span class="fw-semibold font-monospace text-body">{{ $imei->imei_serial }}</span>
+                                                        @if($imei->colorAttribute)
+                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ $imei->colorAttribute->label }}</span>
+                                                        @endif
+                                                        @if($imei->countryAttribute)
+                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ strtoupper($imei->countryAttribute->label) }}</span>
+                                                        @endif
                                                     </div>
                                                     <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Add to Cart</span>
                                                 </button>
@@ -158,19 +164,19 @@
                                                 >
                                             </td>
                                             <td class="text-end py-3">
-    <div class="input-group input-group-sm justify-content-end" style="max-width: 130px; margin-left: auto;">
-        <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25 px-2">৳</span>
-        <input
-            type="number"
-            min="0"
-            step="0.01"
-            x-on:focus="$event.target.select()"
-            wire:change="updatePrice('{{ $cartKey }}', $event.target.value)"
-            value="{{ $item['price'] }}"
-            class="form-control form-control-sm text-end fw-semibold font-monospace bg-body text-body border-secondary border-opacity-25"
-        >
-    </div>
-</td>
+                                                <div class="input-group input-group-sm justify-content-end" style="max-width: 130px; margin-left: auto;">
+                                                    <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25 px-2">৳</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        x-on:focus="$event.target.select()"
+                                                        wire:change="updatePrice('{{ $cartKey }}', $event.target.value)"
+                                                        value="{{ $item['price'] }}"
+                                                        class="form-control form-control-sm text-end fw-semibold font-monospace bg-body text-body border-secondary border-opacity-25"
+                                                    >
+                                                </div>
+                                            </td>
                                             <td class="text-end py-3 fw-bold font-monospace text-body">৳{{ number_format($item['price'] * $item['qty'], 2) }}</td>
                                             <td class="text-center py-3 px-3">
                                                 <button wire:click="removeFromCart('{{ $cartKey }}')" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
@@ -245,63 +251,58 @@
                         </div>
 
                         <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <label class="form-label fw-bold text-body mb-0">Payment (split across methods)</label>
-        <button type="button" wire:click="addPaymentRow" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold">
-            <i class="bi bi-plus-circle me-1"></i>Add Method
-        </button>
-    </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold text-body mb-0">Payment (split across methods)</label>
+                                <button type="button" wire:click="addPaymentRow" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold">
+                                    <i class="bi bi-plus-circle me-1"></i>Add Method
+                                </button>
+                            </div>
 
-    <div class="d-flex flex-column gap-2">
-        @foreach($payments as $index => $payment)
-            <div class="d-flex gap-2 align-items-start" wire:key="payment-row-{{ $index }}">
-                <select wire:model="payments.{{ $index }}.method" class="form-select form-select-sm bg-body text-body border-secondary border-opacity-25" style="max-width: 150px;">
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="mobile_banking">Mobile Banking</option>
-                </select>
+                            <div class="d-flex flex-column gap-2">
+                                @foreach($payments as $index => $payment)
+                                    <div class="d-flex gap-2 align-items-start" wire:key="payment-row-{{ $index }}">
+                                        <select wire:model="payments.{{ $index }}.method" class="form-select form-select-sm bg-body text-body border-secondary border-opacity-25" style="max-width: 150px;">
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                            <option value="mobile_banking">Mobile Banking</option>
+                                        </select>
 
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        x-on:focus="$event.target.select()"
-                        wire:model.debounce.300ms="payments.{{ $index }}.amount"
-                        placeholder="0.00"
-                        class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
-                    >
-                </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                x-on:focus="$event.target.select()"
+                                                wire:model.live.debounce.600ms="payments.{{ $index }}.amount"
+                                                placeholder="0.00"
+                                                class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
+                                            >
+                                        </div>
 
-                <input
-                    type="text"
-                    wire:model.blur="payments.{{ $index }}.notes"
-                    placeholder="Note (optional)"
-                    class="form-control form-control-sm bg-body text-body border-secondary border-opacity-25"
-                    style="max-width: 160px;"
-                >
+                                        <input
+                                            type="text"
+                                            wire:model.blur="payments.{{ $index }}.notes"
+                                            placeholder="Note (optional)"
+                                            class="form-control form-control-sm bg-body text-body border-secondary border-opacity-25"
+                                            style="max-width: 160px;"
+                                        >
 
-                @if(count($payments) > 1)
-                    <button type="button" wire:click="removePaymentRow({{ $index }})" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                @endif
-            </div>
-        @endforeach
-    </div>
+                                        @if(count($payments) > 1)
+                                            <button type="button" wire:click="removePaymentRow({{ $index }})" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
 
-    @error('payments') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
+                            @error('payments') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
 
-    <div class="d-flex justify-content-between mt-2 small text-muted">
-        <span>Total Paid:</span>
-        <strong class="font-monospace text-body">৳{{ number_format($this->paidAmount, 2) }}</strong>
-    </div>
-</div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-body">Paid Amount (৳)</label>
-                            <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.800ms="paidAmount" class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace">
+                            <div class="d-flex justify-content-between mt-2 small text-muted">
+                                <span>Total Paid:</span>
+                                <strong class="font-monospace text-body">৳{{ number_format($this->paidAmount, 2) }}</strong>
+                            </div>
                         </div>
 
                         <hr class="border-secondary opacity-10 my-4">
@@ -317,6 +318,10 @@
                         <div class="d-flex justify-content-between mb-2 fs-5 pt-2 border-top border-secondary border-opacity-10">
                             <span class="fw-bold text-body">Total Amount:</span>
                             <span class="fw-bold text-primary font-monospace">৳{{ number_format($this->total, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-success small">
+                            <span class="fw-semibold">Paid Amount:</span>
+                            <strong class="font-monospace">৳{{ number_format($this->paidAmount, 2) }}</strong>
                         </div>
                         <div class="d-flex justify-content-between text-danger mb-4">
                             <span class="small fw-semibold">Due Balance:</span>

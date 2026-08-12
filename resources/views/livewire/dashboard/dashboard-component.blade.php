@@ -94,22 +94,22 @@
                 </div>
             </div>
         </div>
-        <div class="col-6 col-xl-3">
+        {{-- <div class="col-6 col-xl-3">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <div class="text-muted small">Low Stock Items</div>
                     <div class="fs-5 fw-bold {{ $lowStockCount > 0 ? 'text-warning' : '' }}">{{ $lowStockCount }}</div>
                 </div>
             </div>
-        </div>
-        <div class="col-6 col-xl-3">
+        </div> --}}
+        {{-- <div class="col-6 col-xl-3">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <div class="text-muted small">Out of Stock</div>
                     <div class="fs-5 fw-bold {{ $outOfStockCount > 0 ? 'text-danger' : '' }}">{{ $outOfStockCount }}</div>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 
     <div class="row g-3">

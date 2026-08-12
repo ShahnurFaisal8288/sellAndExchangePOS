@@ -27,91 +27,98 @@ class NewSaleComponent extends Component
     // Financial fields
     public $discount = 0;
     public array $payments = [];
-    public $paidAmount = 0;
-    public string $paymentMethod = 'cash';
+    // public $paidAmount = 0;
+    // public string $paymentMethod = 'cash';
 
     public function getSearchResultsProperty()
-    {
-        $search = trim($this->productSearch);
+{
+    $search = trim($this->productSearch);
 
-        if (strlen($search) < 2) {
-            return [];
-        }
-
-        $searchLower = strtolower($search);
-
-        // Don't show IMEIs already placed in the active cart
-        $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
-
-        return Product::where('status', 'active')
-            ->where('stock_quantity', '>', 0)
-            ->where(function ($q) use ($searchLower) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
-                  ->orWhereRaw('LOWER(model) LIKE ?', ["%{$searchLower}%"])
-                  ->orWhereRaw('LOWER(country_code) LIKE ?', ["%{$searchLower}%"])
-                  // Search ONLY UNSOLD IMEIs
-                  ->orWhereHas('purchaseItemImeis', function ($imeiQuery) use ($searchLower) {
-                      $imeiQuery->where('is_sold', false)
-                                ->whereRaw('LOWER(imei_serial) LIKE ?', ["%{$searchLower}%"]);
-                  });
-            })
-            ->with(['purchaseItemImeis' => function ($q) use ($usedImeiIds) {
-                $q->where('is_sold', false);
-
-                if (!empty($usedImeiIds)) {
-                    $q->whereNotIn('id', $usedImeiIds);
-                }
-
-                $q->latest()->limit(10);
-            }])
-            ->limit(10)
-            ->get();
+    if (strlen($search) < 2) {
+        return [];
     }
+
+    $searchLower = strtolower($search);
+
+    $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
+
+    return Product::where('status', 'active')
+        ->where('stock_quantity', '>', 0)
+        ->where(function ($q) use ($searchLower) {
+            $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+              ->orWhereRaw('LOWER(model) LIKE ?', ["%{$searchLower}%"])
+              ->orWhereRaw('LOWER(country_code) LIKE ?', ["%{$searchLower}%"])
+              ->orWhereHas('purchaseItemImeis', function ($imeiQuery) use ($searchLower) {
+                  $imeiQuery->where('is_sold', false)
+                            ->whereRaw('LOWER(imei_serial) LIKE ?', ["%{$searchLower}%"]);
+              });
+        })
+        // 👇 replace the old ->with([...]) call with this one
+        ->with(['purchaseItemImeis' => function ($q) use ($usedImeiIds) {
+            $q->where('is_sold', false);
+
+            if (!empty($usedImeiIds)) {
+                $q->whereNotIn('id', $usedImeiIds);
+            }
+
+            $q->with(['colorAttribute', 'countryAttribute'])->latest()->limit(10);
+        }])
+        ->limit(10)
+        ->get();
+}
 
     public function addToCart($productId, $selectedImei = null, $selectedImeiId = null)
-    {
-        $product = Product::findOrFail($productId);
-        $search = trim($this->productSearch);
+{
+    $product = Product::findOrFail($productId);
+    $search = trim($this->productSearch);
 
-        // Auto-detect exact IMEI match from search bar if no specific IMEI button was clicked
-        if (!$selectedImeiId && !empty($search)) {
-            $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
+    $imeiColor = null;
+    $imeiCountry = null;
 
-            $matchedImei = PurchaseItemImei::where('product_id', $productId)
-                ->where('is_sold', false)
-                ->whereRaw('LOWER(imei_serial) = ?', [strtolower($search)])
-                ->when(!empty($usedImeiIds), fn($q) => $q->whereNotIn('id', $usedImeiIds))
-                ->first();
+    if (!$selectedImeiId && !empty($search)) {
+        $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
 
-            if ($matchedImei) {
-                $selectedImei = $matchedImei->imei_serial;
-                $selectedImeiId = $matchedImei->id;
-            }
+        $matchedImei = PurchaseItemImei::where('product_id', $productId)
+            ->where('is_sold', false)
+            ->whereRaw('LOWER(imei_serial) = ?', [strtolower($search)])
+            ->when(!empty($usedImeiIds), fn($q) => $q->whereNotIn('id', $usedImeiIds))
+            ->with(['colorAttribute', 'countryAttribute'])
+            ->first();
+
+        if ($matchedImei) {
+            $selectedImei = $matchedImei->imei_serial;
+            $selectedImeiId = $matchedImei->id;
+            $imeiColor = $matchedImei->colorAttribute?->label;
+            $imeiCountry = $matchedImei->countryAttribute?->label;
         }
-
-        // Unique cart key keeps distinct IMEIs as separate line items
-        $cartKey = $selectedImeiId ? "{$productId}_imei_{$selectedImeiId}" : (string)$productId;
-
-        if (isset($this->cart[$cartKey])) {
-            if ($this->cart[$cartKey]['qty'] < $product->stock_quantity) {
-                $this->cart[$cartKey]['qty']++;
-            }
-        } else {
-            $this->cart[$cartKey] = [
-                'product_id' => $product->id,
-                'name' => trim($product->name . ' ' . ($product->model ?? '')),
-                'price' => (float) $product->sale_price,
-                'qty' => 1,
-                'stock' => (int) $product->stock_quantity,
-                'country_code' => $product->country_code ?? null,
-                'color' => $product->color ?? null,
-                'imei' => $selectedImei ?? null,
-                'imei_id' => $selectedImeiId ?? null,
-            ];
-        }
-
-        $this->productSearch = '';
+    } elseif ($selectedImeiId) {
+        $matchedImei = PurchaseItemImei::with(['colorAttribute', 'countryAttribute'])->find($selectedImeiId);
+        $imeiColor = $matchedImei?->colorAttribute?->label;
+        $imeiCountry = $matchedImei?->countryAttribute?->label;
     }
+
+    $cartKey = $selectedImeiId ? "{$productId}_imei_{$selectedImeiId}" : (string) $productId;
+
+    if (isset($this->cart[$cartKey])) {
+        if ($this->cart[$cartKey]['qty'] < $product->stock_quantity) {
+            $this->cart[$cartKey]['qty']++;
+        }
+    } else {
+        $this->cart[$cartKey] = [
+            'product_id' => $product->id,
+            'name' => trim($product->name . ' ' . ($product->model ?? '')),
+            'price' => (float) $product->sale_price,
+            'qty' => 1,
+            'stock' => (int) $product->stock_quantity,
+            'country_code' => $imeiCountry ?? $product->country_code ?? null,
+            'color' => $imeiColor ?? $product->color ?? null,
+            'imei' => $selectedImei ?? null,
+            'imei_id' => $selectedImeiId ?? null,
+        ];
+    }
+
+    $this->productSearch = '';
+}
 
     public function toggleNewCustomer()
     {
@@ -138,7 +145,7 @@ class NewSaleComponent extends Component
             $this->cart[$cartKey]['qty'] = (int) $qty;
         }
     }
-    public function updatePrice($cartKey, $price)
+  public function updatePrice($cartKey, $price)
 {
     if (!isset($this->cart[$cartKey])) {
         return;
@@ -178,10 +185,10 @@ class NewSaleComponent extends Component
         $this->discount = is_numeric($value) ? max(0, (float) $value) : 0;
     }
 
-    public function updatedPaidAmount($value)
-    {
-        $this->paidAmount = is_numeric($value) ? max(0, (float) $value) : 0;
-    }
+    // public function updatedPaidAmount($value)
+    // {
+    //     $this->paidAmount = is_numeric($value) ? max(0, (float) $value) : 0;
+    // }
     public function mount()
 {
     $this->addPaymentRow();

@@ -11,7 +11,7 @@ class Exchange extends Model
         'exchange_type', 'sale_id', 'purchase_id', 'old_product_source',
         'old_product_id', 'old_product_description', 'new_product_id',
         'condition', 'new_product_price', 'old_product_return_value',
-        'additional_payment', 'exchange_date', 'notes',
+        'additional_payment', 'exchange_date', 'notes','imei_serial'
     ];
 
     protected $casts = [

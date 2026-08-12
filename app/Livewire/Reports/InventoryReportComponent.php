@@ -8,8 +8,8 @@ use App\Models\Product;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-#[Layout('layouts.app.base.base')]
 
+#[Layout('layouts.app.base.base')]
 class InventoryReportComponent extends Component
 {
     use WithPagination;
@@ -39,6 +39,7 @@ class InventoryReportComponent extends Component
             ->when($this->brandId, fn ($q) => $q->where('brand_id', $this->brandId))
             ->when($this->lowStockOnly, fn ($q) => $q->whereColumn('stock_quantity', '<=', 'min_stock_alert'));
     }
+
     public function render()
     {
         $products = (clone $this->baseQuery())
@@ -52,6 +53,7 @@ class InventoryReportComponent extends Component
             SUM(stock_quantity * purchase_price) as stock_value_cost,
             SUM(stock_quantity * sale_price) as stock_value_retail
         ')->first();
+
         return view('livewire.reports.inventory-report-component', [
             'products' => $products,
             'summary' => $summary,

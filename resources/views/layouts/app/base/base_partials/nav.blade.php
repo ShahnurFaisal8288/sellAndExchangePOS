@@ -18,22 +18,9 @@
       </li>
 
       <!--begin::Global Search-->
-      {{-- <li class="nav-item d-none d-lg-block ms-2">
-        <form class="d-flex" role="search" onsubmit="return false;">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-transparent border-end-0">
-              <i class="bi bi-search text-secondary"></i>
-            </span>
-            <input
-              type="search"
-              class="form-control border-start-0 ps-0"
-              placeholder="Search products, customers, invoices…"
-              aria-label="Search"
-              style="min-width:320px"
-            />
-          </div>
-        </form>
-      </li> --}}
+      <li class="nav-item d-none d-lg-block ms-2">
+       @livewire('global-search-component')
+      </li>
       <!--end::Global Search-->
     </ul>
     <!--end::Start Navbar Links-->

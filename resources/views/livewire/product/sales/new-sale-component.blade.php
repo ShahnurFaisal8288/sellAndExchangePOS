@@ -57,19 +57,25 @@
 
                                             {{-- Individual selectable IMEI items --}}
                                             @foreach($product->purchaseItemImeis as $imei)
-                                                <button
-                                                    type="button"
-                                                    wire:click="addToCart({{ $product->id }}, '{{ $imei->imei_serial }}', {{ $imei->id }})"
-                                                    @click="open = false"
-                                                    class="list-group-item list-group-item-action bg-body text-body ps-4 py-2 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-10"
-                                                >
-                                                    <div>
-                                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 me-2"><i class="bi bi-barcode me-1"></i> IMEI</span>
-                                                        <span class="fw-semibold font-monospace text-body">{{ $imei->imei_serial }}</span>
-                                                    </div>
-                                                    <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Add to Cart</span>
-                                                </button>
-                                            @endforeach
+    <button
+        type="button"
+        wire:click="addToCart({{ $product->id }}, '{{ $imei->imei_serial }}', {{ $imei->id }})"
+        @click="open = false"
+        class="list-group-item list-group-item-action bg-body text-body ps-4 py-2 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-10"
+    >
+        <div>
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 me-2"><i class="bi bi-barcode me-1"></i> IMEI</span>
+            <span class="fw-semibold font-monospace text-body">{{ $imei->imei_serial }}</span>
+            @if($imei->colorAttribute)
+                <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ $imei->colorAttribute->label }}</span>
+            @endif
+            @if($imei->countryAttribute)
+                <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ strtoupper($imei->countryAttribute->label) }}</span>
+            @endif
+        </div>
+        <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Add to Cart</span>
+    </button>
+@endforeach
 
                                         {{-- CASE 2: Regular Product without tracking IMEIs --}}
                                         @else
@@ -156,15 +162,15 @@
                                             <td class="text-end py-3">
     <div class="input-group input-group-sm justify-content-end" style="max-width: 130px; margin-left: auto;">
         <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25 px-2">৳</span>
-        <input
-            type="number"
-            min="0"
-            step="0.01"
-            x-on:focus="$event.target.select()"
-            wire:change="updatePrice('{{ $cartKey }}', $event.target.value)"
-            value="{{ $item['price'] }}"
-            class="form-control form-control-sm text-end fw-semibold font-monospace bg-body text-body border-secondary border-opacity-25"
-        >
+       <input
+    type="number"
+    min="0"
+    step="0.01"
+    x-on:focus="$event.target.select()"
+    wire:input.debounce.600ms="updatePrice('{{ $cartKey }}', $event.target.value)"
+    value="{{ $item['price'] }}"
+    class="form-control form-control-sm text-end fw-semibold font-monospace bg-body text-body border-secondary border-opacity-25"
+>
     </div>
 </td>
                                             <td class="text-end py-3 fw-bold font-monospace text-body">৳{{ number_format($item['price'] * $item['qty'], 2) }}</td>
@@ -260,23 +266,23 @@
 
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        x-on:focus="$event.target.select()"
-                        wire:model.live.debounce.300ms="payments.{{ $index }}.amount"
-                        placeholder="0.00"
-                        class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
-                    >
+                   <input
+        type="number"
+        min="0"
+        step="0.01"
+        x-on:focus="$event.target.select()"
+        wire:model.live.debounce.600ms="payments.{{ $index }}.amount"
+        placeholder="0.00"
+        class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
+    >
                 </div>
 
                 <input
                     type="text"
-                    wire:model.blur="payments.{{ $index }}.notes"
-                    placeholder="Note (optional)"
+                    wire:model.debounce.600ms="payments.{{ $index }}.notes"
+                    placeholder="Note"
                     class="form-control form-control-sm bg-body text-body border-secondary border-opacity-25"
-                    style="max-width: 160px;"
+                    style="max-width: 100px;"
                 >
 
                 @if(count($payments) > 1)
@@ -296,10 +302,10 @@
     </div>
 </div>
 
-                        <div class="mb-4">
+                        {{-- <div class="mb-4">
                             <label class="form-label fw-bold text-body">Paid Amount (৳)</label>
                             <input type="number" min="0" step="0.01" x-on:focus="$event.target.select()" wire:model.live.debounce.500ms="paidAmount" class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace">
-                        </div>
+                        </div> --}}
 
                         <hr class="border-secondary opacity-10 my-4">
 

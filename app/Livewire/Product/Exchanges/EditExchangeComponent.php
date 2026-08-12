@@ -2,33 +2,32 @@
 
 namespace App\Livewire\Product\Exchanges;
 
-use App\Models\Attribute;
 use App\Models\Customer;
 use App\Models\Exchange;
 use App\Models\Product;
 use App\Models\PurchaseItemImei;
-use App\Models\Sale;
-use App\Models\SaleItem;
-use App\Models\SalePayment;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Attribute;
+use Auth;
+use DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.app.base.base')]
-class NewExchangeComponent extends Component
+class EditExchangeComponent extends Component
 {
+    public Exchange $exchange;
+
     // Customer Management
     public bool $is_new_customer = false;
     public ?int $customerId = null;
     public string $new_customer_name = '';
     public string $new_customer_phone = '';
 
-    // Old Product (Trade-In) — now added to real inventory as a Product row
+    // Old Product (Trade-In)
     public string $oldProductName = '';
     public string $oldProductImei = '';
-    public $oldProductReturnValue = 0;   // cost basis / trade-in credit given
-    public $oldProductSalePrice = 0;    // what you intend to resell it for
+    public $oldProductReturnValue = 0;
+    public $oldProductSalePrice = 0;
     public ?string $oldProductColor = null;
     public ?string $oldProductCountryCode = null;
 
@@ -47,9 +46,45 @@ class NewExchangeComponent extends Component
     public array $payments = [];
     public string $notes = '';
 
-    public function mount()
+    public function mount(Exchange $exchange)
     {
-        $this->addPaymentRow();
+        $this->exchange = $exchange->load(['sale.customer', 'sale.payments', 'oldProduct', 'newProduct']);
+
+        // Load Customer info from associated Sale
+        $this->customerId = $exchange->sale?->customer_id;
+
+        // Load Old Product (Trade-in) info
+        $this->oldProductName = $exchange->oldProduct?->name ?? '';
+        $this->oldProductImei = $exchange->oldProduct?->imei_serial ?? '';
+        $this->oldProductReturnValue = $exchange->old_product_return_value;
+        $this->oldProductSalePrice = $exchange->oldProduct?->sale_price ?? 0;
+        $this->oldProductColor = $exchange->oldProduct?->color;
+        $this->oldProductCountryCode = $exchange->oldProduct?->country_code;
+
+        // Load New Product info
+        if ($exchange->newProduct) {
+            $this->newProductId = $exchange->newProduct->id;
+            $this->selectedProductName = trim($exchange->newProduct->name . ' ' . ($exchange->newProduct->model ?? ''));
+            $this->newProductPrice = $exchange->new_product_price;
+            $this->selectedCountryCode = $exchange->newProduct->country_code;
+            $this->selectedColor = $exchange->newProduct->color;
+        }
+
+        $this->notes = $exchange->notes ?? '';
+        $this->additionalPayment = $exchange->additional_payment;
+
+        // Load existing payments or create a default row
+        if ($exchange->sale && $exchange->sale->payments->count() > 0) {
+            foreach ($exchange->sale->payments as $payment) {
+                $this->payments[] = [
+                    'method' => $payment->payment_method,
+                    'amount' => $payment->amount,
+                    'notes' => $payment->notes,
+                ];
+            }
+        } else {
+            $this->addPaymentRow();
+        }
     }
 
     public function toggleNewCustomer()
@@ -62,12 +97,12 @@ class NewExchangeComponent extends Component
 
     public function getColorsProperty()
     {
-        return Attribute::where('name', 'Color')->orderBy('label')->get();
+        return \App\Models\Attribute::where('name', 'Color')->orderBy('label')->get();
     }
 
     public function getCountriesProperty()
     {
-        return Attribute::where('name', 'Country')->orderBy('id')->get();
+        return \App\Models\Attribute::where('name', 'Country')->orderBy('id')->get();
     }
 
     public function getSearchResultsProperty()
@@ -176,8 +211,6 @@ class NewExchangeComponent extends Component
         return Customer::orderBy('name')->get();
     }
 
-    // --- Payment rows (same pattern as NewSaleComponent) ---
-
     public function addPaymentRow()
     {
         $this->payments[] = [
@@ -211,7 +244,7 @@ class NewExchangeComponent extends Component
         return (float) collect($this->payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
     }
 
-    public function confirmExchange()
+    public function updateExchange()
     {
         $rules = [
             'oldProductName' => 'required|string|max:150',
@@ -227,7 +260,6 @@ class NewExchangeComponent extends Component
             $rules['new_customer_phone'] = 'required|string|max:20';
         }
 
-        // Only require payment rows when the customer actually owes money
         if ($this->additionalPayment > 0) {
             $rules['payments'] = 'required|array|min:1';
             $rules['payments.*.method'] = 'required|in:cash,card,mobile_banking';
@@ -236,37 +268,7 @@ class NewExchangeComponent extends Component
 
         $this->validate($rules);
 
-        $product = Product::find($this->newProductId);
-        if (!$product || $product->stock_quantity < 1) {
-            $this->addError('newProductId', 'Selected item is no longer in stock.');
-            return;
-        }
-
-        if ($this->selectedImeiId) {
-            $isSold = DB::table('purchase_item_imeis')->where('id', $this->selectedImeiId)->value('is_sold');
-            if ($isSold) {
-                $this->addError('newProductId', 'The selected IMEI has already been sold.');
-                return;
-            }
-        }
-
-        $activePayments = collect($this->payments)
-            ->map(fn($p) => [
-                'payment_method' => $p['method'],
-                'amount' => (float) ($p['amount'] ?? 0),
-                'notes' => trim($p['notes'] ?? '') ?: null,
-            ])
-            ->filter(fn($p) => $p['amount'] > 0)
-            ->values();
-
-        $paidAmount = $this->additionalPayment > 0 ? (float) $activePayments->sum('amount') : 0;
-
-        if ($this->additionalPayment > 0 && $paidAmount > $this->additionalPayment) {
-            $this->addError('payments', 'Amount received (৳' . number_format($paidAmount, 2) . ') cannot exceed the amount due (৳' . number_format($this->additionalPayment, 2) . ').');
-            return;
-        }
-
-        DB::transaction(function () use ($product, $activePayments, $paidAmount) {
+        DB::transaction(function () {
             $finalCustomerId = $this->customerId;
 
             if ($this->is_new_customer) {
@@ -282,94 +284,84 @@ class NewExchangeComponent extends Component
             $cashDifference = $this->additionalPayment;
             $oldProductDescription = $this->oldProductName . ($this->oldProductImei ? " [IMEI: {$this->oldProductImei}]" : '');
 
-            // 1. Add the traded-in item to real inventory as a Product,
-            //    so it becomes searchable/sellable through the normal sale flow.
-            $oldProduct = Product::create([
-                'name' => $this->oldProductName,
-                'imei_serial' => $this->oldProductImei ?: null,
-                'category_id' => null,
-                'brand_id' => null,
-                'purchase_price' => $returnVal,
-                'sale_price' => (float) $this->oldProductSalePrice,
-                'stock_quantity' => 1,
-                'min_stock_alert' => 1,
-                'status' => 'active',
-                'color' => $this->oldProductColor ?: null,
-                'country_code' => $this->oldProductCountryCode ?: null,
-            ]);
-
-            // 2. Outgoing Sale Record
-            $actualPaidAmount = $cashDifference > 0 ? min($paidAmount, $cashDifference) : 0;
-            $actualDue = $cashDifference > 0 ? max(0, $cashDifference - $paidAmount) : 0;
-            $saleCount = Sale::whereDate('created_at', today())->count();
-
-            $sale = Sale::create([
-                'customer_id' => $finalCustomerId ?: null,
-                'user_id' => Auth::id(),
-                'invoice_no' => 'INV-' . now()->format('Ymd') . '-' . str_pad($saleCount + 1, 4, '0', STR_PAD_LEFT),
-                'total_amount' => max(0, $newPrice - $returnVal),
-                'discount' => $returnVal,
-                'paid_amount' => $actualPaidAmount,
-                'due_amount' => $actualDue,
-                'payment_method' => $activePayments->first()['payment_method'] ?? 'cash',
-                'sale_date' => now()->toDateString(),
-            ]);
-
-            SaleItem::create([
-                'sale_id' => $sale->id,
-                'product_id' => $this->newProductId,
-                'quantity' => 1,
-                'unit_price' => $newPrice,
-                'subtotal' => $newPrice,
-            ]);
-
-            if ($this->selectedImeiId) {
-                DB::table('purchase_item_imeis')
-                    ->where('id', $this->selectedImeiId)
-                    ->update(['is_sold' => true]);
+            // 1. Update Old Product (Trade-In) record
+            if ($this->exchange->oldProduct) {
+                $this->exchange->oldProduct->update([
+                    'name' => $this->oldProductName,
+                    'imei_serial' => $this->oldProductImei ?: null,
+                    'purchase_price' => $returnVal,
+                    'sale_price' => (float) $this->oldProductSalePrice,
+                    'color' => $this->oldProductColor ?: null,
+                    'country_code' => $this->oldProductCountryCode ?: null,
+                ]);
             }
 
-            $product->decrement('stock_quantity', 1);
+            // 2. Handle stock adjustment for old product change if needed, or update Sale & Sale Items
+            $sale = $this->exchange->sale;
+            if ($sale) {
+                $actualPaidAmount = $cashDifference > 0 ? min($this->paidAmount, $cashDifference) : 0;
+                $actualDue = $cashDifference > 0 ? max(0, $cashDifference - $this->paidAmount) : 0;
 
-            // 3. Record split payments, only if the customer actually owed something
-            if ($cashDifference > 0) {
-                foreach ($activePayments as $payment) {
-                    $sale->payments()->create([
-                        ...$payment,
-                        'user_id' => Auth::id() ?? 1,
-                        'paid_date' => now()->toDateString(),
+                $sale->update([
+                    'customer_id' => $finalCustomerId ?: null,
+                    'total_amount' => max(0, $newPrice - $returnVal),
+                    'discount' => $returnVal,
+                    'paid_amount' => $actualPaidAmount,
+                    'due_amount' => $actualDue,
+                ]);
+
+                // Update Sale Item
+                $saleItem = $sale->items()->first();
+                if ($saleItem) {
+                    // Revert old product stock count if item changed
+                    if ($saleItem->product_id != $this->newProductId) {
+                        Product::where('id', $saleItem->product_id)->increment('stock_quantity', 1);
+                        Product::where('id', $this->newProductId)->decrement('stock_quantity', 1);
+                    }
+
+                    $saleItem->update([
+                        'product_id' => $this->newProductId,
+                        'unit_price' => $newPrice,
+                        'subtotal' => $newPrice,
                     ]);
+                }
+
+                // Refresh payments
+                $sale->payments()->delete();
+                if ($cashDifference > 0) {
+                    foreach ($this->payments as $payment) {
+                        if ((float)$payment['amount'] > 0) {
+                            $sale->payments()->create([
+                                'payment_method' => $payment['method'],
+                                'amount' => (float) $payment['amount'],
+                                'notes' => trim($payment['notes'] ?? '') ?: null,
+                                'user_id' => Auth::id() ?? 1,
+                                'paid_date' => now()->toDateString(),
+                            ]);
+                        }
+                    }
                 }
             }
 
-            // 4. Exchange Log — now linked to the real Product row created above
-            $exchange = Exchange::create([
-                'exchange_type' => 'trade_in',
-                'sale_id' => $sale->id,
-                'purchase_id' => null,
-                'old_product_source' => 'external',
-                'old_product_id' => $oldProduct->id,
+            // 3. Update Exchange Log entry
+            $this->exchange->update([
                 'old_product_description' => $oldProductDescription,
                 'imei_serial' => $this->oldProductImei ?: null,
                 'new_product_id' => $this->newProductId,
-                'condition' => 'resellable',
                 'new_product_price' => $newPrice,
                 'old_product_return_value' => $returnVal,
                 'additional_payment' => $cashDifference,
-                'exchange_date' => now()->toDateString(),
                 'notes' => $this->notes ?: null,
             ]);
 
-            session()->flash('success', "Exchange completed! Invoice #{$sale->invoice_no} created successfully. Traded-in item added to stock.");
-
-            $this->reset();
-            $this->addPaymentRow();
-            $this->dispatch('exchange-completed', exchangeId: $exchange->id);
+            session()->flash('success', "Exchange transaction updated successfully!");
         });
+
+        return redirect()->route('exchanges.index');
     }
 
     public function render()
     {
-        return view('livewire.product.exchanges.new-exchange-component');
+        return view('livewire.product.exchanges.edit-exchange-component');
     }
 }

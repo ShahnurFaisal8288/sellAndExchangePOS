@@ -70,6 +70,10 @@ class ProfitAndLossReportComponent extends Component
         }
     }
 
+    /**
+     * Per-invoice, per-item breakdown (mirrors the reference "Daily Profit & Loss (Invoice)" layout),
+     * plus the same top-level summary totals the cards use.
+     */
     public function getReportDataProperty()
     {
         $salesQuery = Sale::query();
@@ -78,20 +82,60 @@ class ProfitAndLossReportComponent extends Component
             $salesQuery->whereBetween('sale_date', [$this->startDate, $this->endDate]);
         }
 
-        $totalSales = (float) $salesQuery->sum('total_amount');
-        $totalDiscountGiven = (float) $salesQuery->sum('discount');
+        $sales = $salesQuery
+            ->with(['items.product', 'customer'])
+            ->orderBy('sale_date')
+            ->orderBy('id')
+            ->get();
 
-        $sales = $salesQuery->with('items.product')->get();
+        $invoices = [];
 
-        $totalCostOfGoods = 0;
         $grossRevenue = 0;
+        $totalDiscountGiven = 0;
+        $totalCostOfGoods = 0;
 
         foreach ($sales as $sale) {
-            $grossRevenue += (float) $sale->total_amount;
+            $invoiceItems = [];
+            $invoiceTotal = 0;
+            $invoiceCost = 0;
+
             foreach ($sale->items as $item) {
-                $purchasePrice = $item->product ? (float) $item->product->purchase_price : 0;
-                $totalCostOfGoods += $purchasePrice * $item->quantity;
+                $qty = (int) $item->quantity;
+                $unitPrice = (float) $item->unit_price;
+                $lineTotal = (float) $item->subtotal;
+                $unitCost = $item->product ? (float) $item->product->purchase_price : 0;
+                $lineCost = $unitCost * $qty;
+                $lineProfit = $lineTotal - $lineCost;
+
+                $invoiceItems[] = [
+                    'sku' => $item->product?->sku ?? $item->product_id,
+                    'name' => $item->product?->name ?? 'Unknown Product',
+                    'imei' => $item->imei_serial,
+                    'qty' => $qty,
+                    'unit_price' => $unitPrice,
+                    'total' => $lineTotal,
+                    'cost' => $lineCost,
+                    'profit_loss' => $lineProfit,
+                ];
+
+                $invoiceTotal += $lineTotal;
+                $invoiceCost += $lineCost;
             }
+
+            $invoices[] = [
+                'invoice_no' => $sale->invoice_no,
+                'customer_name' => $sale->customer?->name ?? 'Walk-in Customer',
+                'sale_date' => $sale->sale_date,
+                'items' => $invoiceItems,
+                'invoice_total' => $invoiceTotal,
+                'invoice_cost' => $invoiceCost,
+                'invoice_profit_loss' => $invoiceTotal - $invoiceCost,
+                'discount' => (float) $sale->discount,
+            ];
+
+            $grossRevenue += $invoiceTotal;
+            $totalDiscountGiven += (float) $sale->discount;
+            $totalCostOfGoods += $invoiceCost;
         }
 
         $netSales = $grossRevenue;
@@ -107,14 +151,17 @@ class ProfitAndLossReportComponent extends Component
         $totalLoss = $operatingProfit < 0 ? abs($operatingProfit) : 0;
 
         return [
-            'total_sales' => $totalSales + $totalDiscountGiven,
-            'net_sales' => $totalSales,
-            'total_discount_given' => $totalDiscountGiven,
-            'total_cost_of_goods' => $totalCostOfGoods,
-            'total_profit' => $totalProfit,
-            'total_loss' => $totalLoss,
-            'net_profit_loss' => $operatingProfit,
-            'total_purchases' => $totalPurchasesExpense,
+            'invoices' => $invoices,
+            'summary' => [
+                'total_sales' => $netSales + $totalDiscountGiven,
+                'net_sales' => $netSales,
+                'total_discount_given' => $totalDiscountGiven,
+                'total_cost_of_goods' => $totalCostOfGoods,
+                'total_profit' => $totalProfit,
+                'total_loss' => $totalLoss,
+                'net_profit_loss' => $operatingProfit,
+                'total_purchases' => $totalPurchasesExpense,
+            ],
         ];
     }
 

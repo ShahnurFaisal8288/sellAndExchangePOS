@@ -35,7 +35,10 @@
                             <td class="text-end">৳{{ number_format($ex->new_product_price, 2) }}</td>
                             <td class="text-end {{ $ex->additional_payment < 0 ? 'text-success' : '' }}">৳{{ number_format($ex->additional_payment, 2) }}</td>
                             <td>{{ $ex->exchange_date->format('Y-m-d') }}</td>
-                            <td><a href="{{ route('exchanges.show', $ex) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+                            <td>
+                                <a href="{{ route('exchanges.edit', $ex) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{{ route('exchanges.show', $ex) }}" class="btn btn-sm btn-outline-secondary">View</a>
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="9" class="text-center text-muted py-4">No exchanges yet.</td></tr>

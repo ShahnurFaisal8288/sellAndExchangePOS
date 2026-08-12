@@ -32,20 +32,27 @@
                 </div>
             </div>
 
+            <!-- Summary Cards (Expanded to 4 columns to include Total Units) -->
             <div class="row mb-3 g-2">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="border rounded p-2 text-center">
                         <div class="text-muted small">Products</div>
                         <div class="fs-5 fw-bold">{{ $summary->total_products ?? 0 }}</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="border rounded p-2 text-center">
+                        <div class="text-muted small">Total Stock</div>
+                        <div class="fs-5 fw-bold">{{ number_format($summary->total_units ?? 0) }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="border rounded p-2 text-center">
                         <div class="text-muted small">Stock Value (Cost)</div>
                         <div class="fs-5 fw-bold">৳{{ number_format($summary->stock_value_cost ?? 0, 2) }}</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="border rounded p-2 text-center">
                         <div class="text-muted small">Stock Value (Retail)</div>
                         <div class="fs-5 fw-bold">৳{{ number_format($summary->stock_value_retail ?? 0, 2) }}</div>

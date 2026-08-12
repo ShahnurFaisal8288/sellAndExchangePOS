@@ -46,83 +46,83 @@ class EditSaleComponent extends Component
         // $this->paidAmount = (float) $sale->paid_amount;
         // $this->paymentMethod = $sale->payment_method;
 
-        foreach ($sale->items as $saleItem) {
-            $product = Product::find($saleItem->product_id);
+       foreach ($sale->items as $saleItem) {
+    $product = Product::find($saleItem->product_id);
 
-            // Try to resolve the linked IMEI row (if any) for this sale item
-            $imeiRow = null;
-            if (!empty($saleItem->imei_serial)) {
-                $imeiRow = PurchaseItemImei::where('sale_item_id', $saleItem->id)->first();
-            }
-
-            $cartKey = $imeiRow ? "{$saleItem->product_id}_imei_{$imeiRow->id}" : (string) $saleItem->product_id;
-
-            $this->cart[$cartKey] = [
-                'product_id'   => $saleItem->product_id,
-                'name'         => $product ? trim($product->name . ' ' . ($product->model ?? '')) : $saleItem->product_id,
-                'price'        => (float) $saleItem->unit_price,
-                'qty'          => (int) $saleItem->quantity,
-                // stock for display purposes only (real max is computed via virtualStock())
-                'stock'        => $product ? (int) $product->stock_quantity : 0,
-                'country_code' => $product->country_code ?? null,
-                'color'        => $product->color ?? null,
-                'imei'         => $saleItem->imei_serial,
-                'imei_id'      => $imeiRow?->id,
-            ];
-
-            if ($imeiRow) {
-                $this->originalImeiIds[] = $imeiRow->id;
-            } else {
-                $this->originalQtyByProduct[$saleItem->product_id] =
-                    ($this->originalQtyByProduct[$saleItem->product_id] ?? 0) + $saleItem->quantity;
-            }
-        }
-         if ($sale->payments->isNotEmpty()) {
-        foreach ($sale->payments as $payment) {
-            $this->payments[] = [
-                'method' => $payment->payment_method,
-                'amount' => (float) $payment->amount,
-                'notes'  => $payment->notes ?? '',
-            ];
-        }
-    } else {
-        $this->addPaymentRow();
+    $imeiRow = null;
+    if (!empty($saleItem->imei_serial)) {
+        $imeiRow = PurchaseItemImei::with(['colorAttribute', 'countryAttribute'])
+            ->where('sale_item_id', $saleItem->id)
+            ->first();
     }
+
+    $cartKey = $imeiRow ? "{$saleItem->product_id}_imei_{$imeiRow->id}" : (string) $saleItem->product_id;
+
+    $this->cart[$cartKey] = [
+        'product_id'   => $saleItem->product_id,
+        'name'         => $product ? trim($product->name . ' ' . ($product->model ?? '')) : $saleItem->product_id,
+        'price'        => (float) $saleItem->unit_price,
+        'qty'          => (int) $saleItem->quantity,
+        'stock'        => $product ? (int) $product->stock_quantity : 0,
+        'country_code' => $imeiRow?->countryAttribute?->label ?? $product->country_code ?? null,
+        'color'        => $imeiRow?->colorAttribute?->label ?? $product->color ?? null,
+        'imei'         => $saleItem->imei_serial,
+        'imei_id'      => $imeiRow?->id,
+    ];
+
+    if ($imeiRow) {
+        $this->originalImeiIds[] = $imeiRow->id;
+    } else {
+        $this->originalQtyByProduct[$saleItem->product_id] =
+            ($this->originalQtyByProduct[$saleItem->product_id] ?? 0) + $saleItem->quantity;
+    }
+}
+        if ($sale->payments->isNotEmpty()) {
+            foreach ($sale->payments as $payment) {
+                $this->payments[] = [
+                    'method' => $payment->payment_method,
+                    'amount' => (float) $payment->amount,
+                    'notes' => $payment->notes ?? '',
+                ];
+            }
+        } else {
+            $this->addPaymentRow();
+        }
 
     }
 
     public function addPaymentRow()
-{
-    $this->payments[] = [
-        'method' => 'cash',
-        'amount' => 0,
-        'notes' => '',
-    ];
-}
-
-public function removePaymentRow($index)
-{
-    unset($this->payments[$index]);
-    $this->payments = array_values($this->payments);
-
-    if (empty($this->payments)) {
-        $this->addPaymentRow();
+    {
+        $this->payments[] = [
+            'method' => 'cash',
+            'amount' => 0,
+            'notes' => '',
+        ];
     }
-}
 
-public function updatedPayments($value, $key)
-{
-    $parts = explode('.', $key);
-    if (count($parts) === 2 && $parts[1] === 'amount') {
-        $amt = is_numeric($value) ? (float) $value : 0;
-        $this->payments[$parts[0]]['amount'] = max(0, $amt);
+    public function removePaymentRow($index)
+    {
+        unset($this->payments[$index]);
+        $this->payments = array_values($this->payments);
+
+        if (empty($this->payments)) {
+            $this->addPaymentRow();
+        }
     }
-}
 
-public function getPaidAmountProperty(): float
-{
-    return (float) collect($this->payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
-}
+    public function updatedPayments($value, $key)
+    {
+        $parts = explode('.', $key);
+        if (count($parts) === 2 && $parts[1] === 'amount') {
+            $amt = is_numeric($value) ? (float) $value : 0;
+            $this->payments[$parts[0]]['amount'] = max(0, $amt);
+        }
+    }
+
+    public function getPaidAmountProperty(): float
+    {
+        return (float) collect($this->payments)->sum(fn($p) => (float) ($p['amount'] ?? 0));
+    }
 
     /**
      * Stock available to this edit session = actual DB stock + whatever quantity
@@ -144,21 +144,20 @@ public function getPaidAmountProperty(): float
 
         $searchLower = strtolower($search);
 
-        // IMEIs currently sitting in the cart shouldn't be offered again
         $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
 
         $products = Product::where('status', 'active')
             ->where(function ($q) use ($searchLower) {
                 $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
-                  ->orWhereRaw('LOWER(model) LIKE ?', ["%{$searchLower}%"])
-                  ->orWhereRaw('LOWER(country_code) LIKE ?', ["%{$searchLower}%"])
-                  ->orWhereHas('purchaseItemImeis', function ($imeiQuery) use ($searchLower) {
-                      $imeiQuery->whereRaw('LOWER(imei_serial) LIKE ?', ["%{$searchLower}%"]);
-                  });
+                    ->orWhereRaw('LOWER(model) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(country_code) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereHas('purchaseItemImeis', function ($imeiQuery) use ($searchLower) {
+                        $imeiQuery->whereRaw('LOWER(imei_serial) LIKE ?', ["%{$searchLower}%"]);
+                    });
             })
-            ->with(['purchaseItemImeis' => function ($q) use ($usedImeiIds) {
-                // Available = not sold, OR it belongs to this sale (being edited)
-                $q->where(function ($sub) {
+            ->with([
+                'purchaseItemImeis' => function ($q) use ($usedImeiIds) {
+                    $q->where(function ($sub) {
                         $sub->where('is_sold', false);
 
                         if (!empty($this->originalImeiIds)) {
@@ -166,16 +165,17 @@ public function getPaidAmountProperty(): float
                         }
                     });
 
-                if (!empty($usedImeiIds)) {
-                    $q->whereNotIn('id', $usedImeiIds);
-                }
+                    if (!empty($usedImeiIds)) {
+                        $q->whereNotIn('id', $usedImeiIds);
+                    }
 
-                $q->latest()->limit(10);
-            }])
+                    // 👇 added
+                    $q->with(['colorAttribute', 'countryAttribute'])->latest()->limit(10);
+                }
+            ])
             ->limit(10)
             ->get();
 
-        // Filter out products with zero virtual stock and no available IMEIs
         return $products->filter(function ($product) {
             return $this->virtualStock($product) > 0 || $product->purchaseItemImeis->isNotEmpty();
         })->values();
@@ -185,6 +185,9 @@ public function getPaidAmountProperty(): float
     {
         $product = Product::findOrFail($productId);
         $search = trim($this->productSearch);
+
+        $imeiColor = null;
+        $imeiCountry = null;
 
         if (!$selectedImeiId && !empty($search)) {
             $usedImeiIds = array_filter(array_column($this->cart, 'imei_id'));
@@ -198,12 +201,19 @@ public function getPaidAmountProperty(): float
                 })
                 ->whereRaw('LOWER(imei_serial) = ?', [strtolower($search)])
                 ->when(!empty($usedImeiIds), fn($q) => $q->whereNotIn('id', $usedImeiIds))
+                ->with(['colorAttribute', 'countryAttribute'])
                 ->first();
 
             if ($matchedImei) {
                 $selectedImei = $matchedImei->imei_serial;
                 $selectedImeiId = $matchedImei->id;
+                $imeiColor = $matchedImei->colorAttribute?->label;
+                $imeiCountry = $matchedImei->countryAttribute?->label;
             }
+        } elseif ($selectedImeiId) {
+            $matchedImei = PurchaseItemImei::with(['colorAttribute', 'countryAttribute'])->find($selectedImeiId);
+            $imeiColor = $matchedImei?->colorAttribute?->label;
+            $imeiCountry = $matchedImei?->countryAttribute?->label;
         }
 
         $cartKey = $selectedImeiId ? "{$productId}_imei_{$selectedImeiId}" : (string) $productId;
@@ -215,15 +225,15 @@ public function getPaidAmountProperty(): float
             }
         } else {
             $this->cart[$cartKey] = [
-                'product_id'   => $product->id,
-                'name'         => trim($product->name . ' ' . ($product->model ?? '')),
-                'price'        => (float) $product->sale_price,
-                'qty'          => 1,
-                'stock'        => $virtualStock,
-                'country_code' => $product->country_code ?? null,
-                'color'        => $product->color ?? null,
-                'imei'         => $selectedImei ?? null,
-                'imei_id'      => $selectedImeiId ?? null,
+                'product_id' => $product->id,
+                'name' => trim($product->name . ' ' . ($product->model ?? '')),
+                'price' => (float) $product->sale_price,
+                'qty' => 1,
+                'stock' => $virtualStock,
+                'country_code' => $imeiCountry ?? $product->country_code ?? null,
+                'color' => $imeiColor ?? $product->color ?? null,
+                'imei' => $selectedImei ?? null,
+                'imei_id' => $selectedImeiId ?? null,
             ];
         }
 
@@ -232,7 +242,7 @@ public function getPaidAmountProperty(): float
 
     public function toggleNewCustomer()
     {
-        $this->is_new_customer = ! $this->is_new_customer;
+        $this->is_new_customer = !$this->is_new_customer;
         $this->customerId = null;
         $this->new_customer_name = '';
         $this->new_customer_phone = '';
@@ -262,7 +272,7 @@ public function getPaidAmountProperty(): float
             $this->cart[$cartKey]['qty'] = (int) $qty;
         }
     }
-public function updatePrice($cartKey, $price)
+   public function updatePrice($cartKey, $price)
 {
     if (!isset($this->cart[$cartKey])) {
         return;
@@ -307,130 +317,130 @@ public function updatePrice($cartKey, $price)
     // }
 
     public function confirmUpdate()
-{
-    $rules = [
-        'cart' => 'required|array|min:1',
-        'payments' => 'required|array|min:1',
-        'payments.*.method' => 'required|in:cash,card,mobile_banking',
-        'payments.*.amount' => 'required|numeric|min:0',
-        'discount' => 'nullable|numeric|min:0',
-    ];
-
-    if ($this->is_new_customer) {
-        $rules['new_customer_name'] = 'required|string|max:255';
-        $rules['new_customer_phone'] = 'required|string|max:20';
-    }
-
-    $this->validate($rules, [
-        'cart.required' => 'Add at least one product to the cart before saving.',
-        'payments.required' => 'Add at least one payment method.',
-        'new_customer_name.required' => 'Please provide the new customer name.',
-        'new_customer_phone.required' => 'Please provide the new customer phone number.',
-    ]);
-
-    $discount = (float) ($this->discount ?: 0);
-
-    if ($discount > $this->subtotal) {
-        $this->addError('discount', 'Discount cannot exceed subtotal.');
-        return;
-    }
-
-    $activePayments = collect($this->payments)
-        ->map(fn($p) => [
-            'payment_method' => $p['method'],
-            'amount' => (float) ($p['amount'] ?? 0),
-            'notes' => trim($p['notes'] ?? '') ?: null,
-        ])
-        ->filter(fn($p) => $p['amount'] > 0)
-        ->values();
-
-    $paidAmount = (float) $activePayments->sum('amount');
-
-    if ($paidAmount > $this->total) {
-        $this->addError('payments', 'Total paid (৳' . number_format($paidAmount, 2) . ') cannot exceed the sale total (৳' . number_format($this->total, 2) . ').');
-        return;
-    }
-
-    DB::transaction(function () use ($discount, $paidAmount, $activePayments) {
-        $sale = Sale::where('id', $this->sale->id)->lockForUpdate()->firstOrFail();
-
-        // 1) REVERT original sale's effect on stock & IMEIs
-        $originalItems = SaleItem::where('sale_id', $sale->id)->get();
-
-        foreach ($originalItems as $originalItem) {
-            Product::where('id', $originalItem->product_id)
-                ->lockForUpdate()
-                ->increment('stock_quantity', $originalItem->quantity);
-
-            PurchaseItemImei::where('sale_item_id', $originalItem->id)->update([
-                'is_sold' => false,
-                'sale_item_id' => null,
-            ]);
-        }
-
-        SaleItem::where('sale_id', $sale->id)->delete();
-
-        // 1b) Wipe old payment rows — they'll be fully replaced below
-        SalePayment::where('sale_id', $sale->id)->delete();
-
-        // 2) Resolve customer
-        $resolvedCustomerId = $this->customerId;
+    {
+        $rules = [
+            'cart' => 'required|array|min:1',
+            'payments' => 'required|array|min:1',
+            'payments.*.method' => 'required|in:cash,card,mobile_banking',
+            'payments.*.amount' => 'required|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
+        ];
 
         if ($this->is_new_customer) {
-            $customer = Customer::create([
-                'name' => trim($this->new_customer_name),
-                'phone' => trim($this->new_customer_phone),
-            ]);
-            $resolvedCustomerId = $customer->id;
+            $rules['new_customer_name'] = 'required|string|max:255';
+            $rules['new_customer_phone'] = 'required|string|max:20';
         }
 
-        // 3) REAPPLY the new cart (same as create flow)
-        foreach ($this->cart as $item) {
-            $productId = $item['product_id'];
+        $this->validate($rules, [
+            'cart.required' => 'Add at least one product to the cart before saving.',
+            'payments.required' => 'Add at least one payment method.',
+            'new_customer_name.required' => 'Please provide the new customer name.',
+            'new_customer_phone.required' => 'Please provide the new customer phone number.',
+        ]);
 
-            $saleItem = SaleItem::create([
-                'sale_id' => $sale->id,
-                'product_id' => $productId,
-                'quantity' => $item['qty'],
-                'unit_price' => $item['price'],
-                'subtotal' => $item['price'] * $item['qty'],
-                'imei_serial' => $item['imei'] ?? null,
-            ]);
+        $discount = (float) ($this->discount ?: 0);
 
-            if (!empty($item['imei_id'])) {
-                PurchaseItemImei::where('id', $item['imei_id'])->update([
-                    'is_sold' => true,
-                    'sale_item_id' => $saleItem->id,
+        if ($discount > $this->subtotal) {
+            $this->addError('discount', 'Discount cannot exceed subtotal.');
+            return;
+        }
+
+        $activePayments = collect($this->payments)
+            ->map(fn($p) => [
+                'payment_method' => $p['method'],
+                'amount' => (float) ($p['amount'] ?? 0),
+                'notes' => trim($p['notes'] ?? '') ?: null,
+            ])
+            ->filter(fn($p) => $p['amount'] > 0)
+            ->values();
+
+        $paidAmount = (float) $activePayments->sum('amount');
+
+        if ($paidAmount > $this->total) {
+            $this->addError('payments', 'Total paid (৳' . number_format($paidAmount, 2) . ') cannot exceed the sale total (৳' . number_format($this->total, 2) . ').');
+            return;
+        }
+
+        DB::transaction(function () use ($discount, $paidAmount, $activePayments) {
+            $sale = Sale::where('id', $this->sale->id)->lockForUpdate()->firstOrFail();
+
+            // 1) REVERT original sale's effect on stock & IMEIs
+            $originalItems = SaleItem::where('sale_id', $sale->id)->get();
+
+            foreach ($originalItems as $originalItem) {
+                Product::where('id', $originalItem->product_id)
+                    ->lockForUpdate()
+                    ->increment('stock_quantity', $originalItem->quantity);
+
+                PurchaseItemImei::where('sale_item_id', $originalItem->id)->update([
+                    'is_sold' => false,
+                    'sale_item_id' => null,
                 ]);
             }
 
-            Product::where('id', $productId)->lockForUpdate()->decrement('stock_quantity', $item['qty']);
-        }
+            SaleItem::where('sale_id', $sale->id)->delete();
 
-        // 3b) REAPPLY payment rows
-        foreach ($activePayments as $payment) {
-            $sale->payments()->create([
-                ...$payment,
-                'user_id' => Auth::id() ?? 1,
-                'paid_date' => now()->toDateString(),
+            // 1b) Wipe old payment rows — they'll be fully replaced below
+            SalePayment::where('sale_id', $sale->id)->delete();
+
+            // 2) Resolve customer
+            $resolvedCustomerId = $this->customerId;
+
+            if ($this->is_new_customer) {
+                $customer = Customer::create([
+                    'name' => trim($this->new_customer_name),
+                    'phone' => trim($this->new_customer_phone),
+                ]);
+                $resolvedCustomerId = $customer->id;
+            }
+
+            // 3) REAPPLY the new cart (same as create flow)
+            foreach ($this->cart as $item) {
+                $productId = $item['product_id'];
+
+                $saleItem = SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $productId,
+                    'quantity' => $item['qty'],
+                    'unit_price' => $item['price'],
+                    'subtotal' => $item['price'] * $item['qty'],
+                    'imei_serial' => $item['imei'] ?? null,
+                ]);
+
+                if (!empty($item['imei_id'])) {
+                    PurchaseItemImei::where('id', $item['imei_id'])->update([
+                        'is_sold' => true,
+                        'sale_item_id' => $saleItem->id,
+                    ]);
+                }
+
+                Product::where('id', $productId)->lockForUpdate()->decrement('stock_quantity', $item['qty']);
+            }
+
+            // 3b) REAPPLY payment rows
+            foreach ($activePayments as $payment) {
+                $sale->payments()->create([
+                    ...$payment,
+                    'user_id' => Auth::id() ?? 1,
+                    'paid_date' => now()->toDateString(),
+                ]);
+            }
+
+            // 4) Update the sale header
+            $sale->update([
+                'customer_id' => $resolvedCustomerId ?: null,
+                'total_amount' => $this->total,
+                'discount' => $discount,
+                'paid_amount' => $paidAmount,
+                'due_amount' => $this->due,
+                'payment_method' => $activePayments->first()['payment_method'] ?? 'cash',
             ]);
-        }
 
-        // 4) Update the sale header
-        $sale->update([
-            'customer_id' => $resolvedCustomerId ?: null,
-            'total_amount' => $this->total,
-            'discount' => $discount,
-            'paid_amount' => $paidAmount,
-            'due_amount' => $this->due,
-            'payment_method' => $activePayments->first()['payment_method'] ?? 'cash',
-        ]);
+            session()->flash('success', "Sale invoice {$sale->invoice_no} updated successfully.");
 
-        session()->flash('success', "Sale invoice {$sale->invoice_no} updated successfully.");
-
-        $this->dispatch('sale-updated', invoiceNo: $sale->invoice_no);
-    });
-}
+            $this->dispatch('sale-updated', invoiceNo: $sale->invoice_no);
+        });
+    }
 
     public function render()
     {

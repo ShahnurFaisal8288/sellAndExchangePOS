@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ExchangeController;
+use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\SaleController;
 use App\Livewire\Dashboard\DashboardComponent;
 use App\Livewire\Product\Attribute\AttributeManager;
@@ -9,6 +10,7 @@ use App\Livewire\Product\Category\CategoryComponent;
 use App\Livewire\Product\CreateProductComponent;
 use App\Livewire\Product\EditProductComponent;
 use App\Livewire\Product\Exchanges\AllExchangeComponent;
+use App\Livewire\Product\Exchanges\EditExchangeComponent;
 use App\Livewire\Product\Exchanges\NewExchangeComponent;
 use App\Livewire\Product\LowStockAlertComponent;
 use App\Livewire\Product\PaymentCreate\PaymentCreateComponent;
@@ -55,6 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/exchanges', AllExchangeComponent::class)->name('exchanges.index');
     Route::get('/exchanges/create', NewExchangeComponent::class)->name('exchanges.create');
+    Route::get('/exchanges/{exchange}/edit', EditExchangeComponent::class)->name('exchanges.edit');
     Route::get('/exchanges/{exchange}', [ExchangeController::class, 'show'])->name('exchanges.show');
     Route::get('/exchanges/{exchange}/print', [ExchangeController::class, 'print'])->name('exchanges.print');
 
@@ -65,6 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/purchases/payment_create', PaymentCreateComponent::class)->name('payment_create');
     Route::get('/purchases/create', PurchaseCreateComponent::class)->name('purchases.create');
     Route::get('/purchases/{id}/edit', PurchaseCreateComponent::class)->name('purchases.edit');
+    Route::get('/purchases/{id}/invoice', [PurchaseInvoiceController::class, 'show'])
+    ->name('purchases.invoice');
 
 
      Route::get('/reports/sales', SalesReportComponent::class)->name('reports.sales');

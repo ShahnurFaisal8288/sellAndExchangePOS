@@ -59,47 +59,46 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-3">
-    <div class="col-md-6">
-        <label class="form-label required text-body">Old Product Name / Model</label>
-        <input type="text" wire:model="oldProductName" class="form-control bg-body text-body border-secondary border-opacity-25 @error('oldProductName') is-invalid @enderror" placeholder="e.g., iPhone 11 Pro 64GB">
-        @error('oldProductName') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-    {{-- <div class="col-md-6">
-        <label class="form-label text-body">IMEI / Serial Number (Optional)</label>
-        <input type="text" wire:model="oldProductImei" class="form-control bg-body text-body border-secondary border-opacity-25" placeholder="15-digit IMEI">
-    </div> --}}
+                            <div class="col-md-6">
+                                <label class="form-label required text-body">Old Product Name / Model</label>
+                                <input type="text" wire:model="oldProductName" class="form-control bg-body text-body border-secondary border-opacity-25 @error('oldProductName') is-invalid @enderror" placeholder="e.g., iPhone 11 Pro 64GB">
+                                @error('oldProductName') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            {{-- <div class="col-md-6">
+                                <label class="form-label text-body">IMEI / Serial Number (Optional)</label>
+                                <input type="text" wire:model="oldProductImei" class="form-control bg-body text-body border-secondary border-opacity-25" placeholder="15-digit IMEI">
+                            </div> --}}
 
-    <div class="col-md-4">
-        <label class="form-label text-body">Color (Optional)</label>
-        <select wire:model="oldProductColor" class="form-select bg-body text-body border-secondary border-opacity-25">
-            <option value="">-- Select Color --</option>
-            @foreach($this->colors as $color)
-                <option value="{{ $color->label }}">{{ $color->label }}</option>
-            @endforeach
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label text-body">Country (Optional)</label>
-        <select wire:model="oldProductCountryCode" class="form-select bg-body text-body border-secondary border-opacity-25">
-            <option value="">-- Select Country --</option>
-            @foreach($this->countries as $country)
-                <option value="{{ $country->value }}">{{ $country->value }}</option>
-            @endforeach
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label required text-body">Trade-In Return Value (৳)</label>
-        <input type="number" step="0.01" wire:model.live.debounce.300ms="oldProductReturnValue" class="form-control fw-bold text-danger bg-body border-secondary border-opacity-25 @error('oldProductReturnValue') is-invalid @enderror font-monospace" placeholder="0.00">
-        @error('oldProductReturnValue') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-body">Color (Optional)</label>
+                                <select wire:model="oldProductColor" class="form-select bg-body text-body border-secondary border-opacity-25">
+                                    <option value="">-- Select Color --</option>
+                                    @foreach($this->colors as $color)
+                                        <option value="{{ $color->label }}">{{ $color->label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-body">Country (Optional)</label>
+                                <select wire:model="oldProductCountryCode" class="form-select bg-body text-body border-secondary border-opacity-25">
+                                    <option value="">-- Select Country --</option>
+                                    @foreach($this->countries as $country)
+                                        <option value="{{ $country->value }}">{{ $country->value }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label required text-body">Trade-In Return Value (৳)</label>
+                                <input type="number" step="0.01" wire:model.live.debounce.300ms="oldProductReturnValue" class="form-control fw-bold text-danger bg-body border-secondary border-opacity-25 @error('oldProductReturnValue') is-invalid @enderror font-monospace" placeholder="0.00">
+                                @error('oldProductReturnValue') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
 
-    <div class="col-md-6">
-        <label class="form-label required text-body">Estimated Resale Price (৳)</label>
-        <input type="number" step="0.01" wire:model="oldProductSalePrice" class="form-control fw-bold text-success bg-body border-secondary border-opacity-25 @error('oldProductSalePrice') is-invalid @enderror font-monospace" placeholder="0.00">
-        <div class="form-text">This becomes the sale price once this item is added to stock.</div>
-        @error('oldProductSalePrice') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-</div>
+                            <div class="col-md-6">
+                                <label class="form-label required text-body">Estimated Resale Price (৳)</label>
+                                <input type="number" step="0.01" wire:model="oldProductSalePrice" class="form-control fw-bold text-success bg-body border-secondary border-opacity-25 @error('oldProductSalePrice') is-invalid @enderror font-monospace" placeholder="0.00">
+                                @error('oldProductSalePrice') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -138,36 +137,23 @@
                                                 <div class="list-group-item bg-body-secondary text-uppercase fw-bold text-muted small py-2 px-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
                                                     <span>
                                                         <i class="bi bi-phone me-1"></i> {{ $prod->name }} {{ $prod->model ?? '' }}
-                                                        @if($prod->country_code)
-                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ strtoupper($prod->country_code) }}</span>
-                                                        @endif
-                                                        @if($prod->color)
-                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ $prod->color }}</span>
-                                                        @endif
                                                     </span>
                                                     <span class="text-success fw-bold font-monospace">৳{{ number_format($prod->sale_price, 2) }}</span>
                                                 </div>
-
-                                               @foreach($prod->purchaseItemImeis as $imei)
-    <button
-        type="button"
-        wire:click="selectNewProduct({{ $prod->id }}, {{ $imei->id }}, '{{ $imei->imei_serial }}')"
-        @click="open = false"
-        class="list-group-item list-group-item-action bg-body text-body ps-4 py-2 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-10"
-    >
-        <div>
-            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 me-2"><i class="bi bi-barcode me-1"></i> IMEI</span>
-            <span class="fw-semibold font-monospace text-body">{{ $imei->imei_serial }}</span>
-            @if($imei->colorAttribute)
-                <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ $imei->colorAttribute->label }}</span>
-            @endif
-            @if($imei->countryAttribute)
-                <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ strtoupper($imei->countryAttribute->label) }}</span>
-            @endif
-        </div>
-        <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Select</span>
-    </button>
-@endforeach
+                                                @foreach($prod->purchaseItemImeis as $imei)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="selectNewProduct({{ $prod->id }}, {{ $imei->id }}, '{{ $imei->imei_serial }}')"
+                                                        @click="open = false"
+                                                        class="list-group-item list-group-item-action bg-body text-body ps-4 py-2 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-10"
+                                                    >
+                                                        <div>
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 me-2"><i class="bi bi-barcode me-1"></i> IMEI</span>
+                                                            <span class="fw-semibold font-monospace text-body">{{ $imei->imei_serial }}</span>
+                                                        </div>
+                                                        <span class="btn btn-sm btn-outline-primary py-0 px-2 fw-semibold">+ Select</span>
+                                                    </button>
+                                                @endforeach
                                             @else
                                                 <button
                                                     type="button"
@@ -177,16 +163,9 @@
                                                 >
                                                     <div>
                                                         <span class="fw-semibold text-body">{{ $prod->name }} {{ $prod->model ?? '' }}</span>
-                                                        @if($prod->country_code)
-                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ strtoupper($prod->country_code) }}</span>
-                                                        @endif
-                                                        @if($prod->color)
-                                                            <span class="badge bg-secondary bg-opacity-25 text-body border ms-1">{{ $prod->color }}</span>
-                                                        @endif
                                                     </div>
                                                     <div class="text-end">
                                                         <div class="fw-bold text-success font-monospace">৳{{ number_format($prod->sale_price, 2) }}</div>
-                                                        <small class="text-muted">In Stock: {{ $prod->stock_quantity }}</small>
                                                     </div>
                                                 </button>
                                             @endif
@@ -201,23 +180,6 @@
                             <div class="alert alert-success bg-body-secondary border border-success border-opacity-25 d-flex justify-content-between align-items-start mb-0 text-body">
                                 <div class="flex-grow-1">
                                     <div class="fw-bold fs-6 text-body">{{ $selectedProductName }}</div>
-
-                                    @if($selectedImeiNumber || $selectedCountryCode || $selectedColor)
-                                        <div class="mt-1 d-flex flex-wrap gap-1">
-                                            @if($selectedImeiNumber)
-                                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 font-monospace"><i class="bi bi-barcode me-1"></i>IMEI: {{ $selectedImeiNumber }}</span>
-                                            @endif
-                                            @if($selectedCountryCode)
-                                                <span class="badge bg-secondary bg-opacity-25 text-body border">{{ strtoupper($selectedCountryCode) }}</span>
-                                            @endif
-                                            @if($selectedColor)
-                                                <span class="badge bg-secondary bg-opacity-25 text-body border">{{ $selectedColor }}</span>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    {{-- Editable selling price — lets the cashier negotiate a different
-                                         price than the catalog sale_price for this exchange --}}
                                     <div class="mt-2" style="max-width: 180px;">
                                         <label class="form-label small text-muted mb-1">Selling Price (৳)</label>
                                         <div class="input-group input-group-sm">
@@ -226,12 +188,10 @@
                                                 type="number"
                                                 min="0"
                                                 step="0.01"
-                                                x-on:focus="$event.target.select()"
                                                 wire:model.live.debounce.300ms="newProductPrice"
                                                 class="form-control fw-bold text-success font-monospace bg-body border-secondary border-opacity-25 @error('newProductPrice') is-invalid @enderror"
                                             >
                                         </div>
-                                        @error('newProductPrice') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
                                 <button type="button" wire:click="clearSelectedProduct" class="btn btn-outline-danger btn-sm rounded-circle ms-2">
@@ -268,76 +228,49 @@
                         <hr class="border-secondary opacity-10 my-3">
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="fw-bold fs-6 text-body">
-                                @if($additionalPayment >= 0)
-                                    Customer Pays:
-                                @else
-                                    Refund to Customer:
-                                @endif
-                            </span>
-                            <span class="fw-bolder fs-4 {{ $additionalPayment >= 0 ? 'text-success' : 'text-danger' }} font-monospace">
-                                ৳{{ number_format(abs($additionalPayment), 2) }}
-                            </span>
+                            <span class="fw-bold fs-6 text-body">Customer Pays:</span>
+                            <span class="fw-bolder fs-4 text-success font-monospace">৳{{ number_format(abs($additionalPayment), 2) }}</span>
                         </div>
 
-                        {{-- Amount actually received now — only relevant when the customer
-                             owes a cash difference. Whatever isn't received becomes due_amount. --}}
-                       @if($additionalPayment > 0)
-    <div class="mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label fw-bold text-body mb-0">Payment Received (split across methods)</label>
-            <button type="button" wire:click="addPaymentRow" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold">
-                <i class="bi bi-plus-circle me-1"></i>Add Method
-            </button>
-        </div>
+                        @if($additionalPayment > 0)
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label fw-bold text-body mb-0">Payment Received</label>
+                                    <button type="button" wire:click="addPaymentRow" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold">
+                                        <i class="bi bi-plus-circle me-1"></i>Add Method
+                                    </button>
+                                </div>
 
-        <div class="d-flex flex-column gap-2">
-            @foreach($payments as $index => $payment)
-                <div class="d-flex gap-2 align-items-start" wire:key="payment-row-{{ $index }}">
-                    <select wire:model.live="payments.{{ $index }}.method" class="form-select form-select-sm bg-body text-body border-secondary border-opacity-25" style="max-width: 140px;">
-                        <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="mobile_banking">Mobile Banking</option>
-                    </select>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach($payments as $index => $payment)
+                                        <div class="d-flex gap-2 align-items-start" wire:key="payment-row-{{ $index }}">
+                                            <select wire:model="payments.{{ $index }}.method" class="form-select form-select-sm bg-body text-body border-secondary border-opacity-25" style="max-width: 140px;">
+                                                <option value="cash">Cash</option>
+                                                <option value="card">Card</option>
+                                                <option value="mobile_banking">Mobile Banking</option>
+                                            </select>
 
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
-                        <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            x-on:focus="$event.target.select()"
-                           wire:model.live.debounce.600ms="payments.{{ $index }}.amount"
-                            placeholder="0.00"
-                            class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace @error("payments.{$index}.amount") is-invalid @enderror"
-                        >
-                    </div>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-body-secondary text-muted border-secondary border-opacity-25">৳</span>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    wire:model.live.debounce.600ms="payments.{{ $index }}.amount"
+                                                    class="form-control fw-bold bg-body text-body border-secondary border-opacity-25 font-monospace"
+                                                >
+                                            </div>
 
-                    @if(count($payments) > 1)
-                        <button type="button" wire:click="removePaymentRow({{ $index }})" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    @endif
-                </div>
-            @endforeach
-        </div>
-
-        @error('payments') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
-
-        <div class="d-flex justify-content-between mt-2 small text-muted">
-            <span>Total Received:</span>
-            <strong class="font-monospace text-body">৳{{ number_format($this->paidAmount, 2) }}</strong>
-        </div>
-
-        @php $dueNow = max(0, $additionalPayment - $this->paidAmount); @endphp
-        @if($dueNow > 0)
-            <div class="d-flex justify-content-between text-danger mt-2">
-                <span class="small fw-semibold">Due Balance:</span>
-                <strong class="fs-6 font-monospace">৳{{ number_format($dueNow, 2) }}</strong>
-            </div>
-        @endif
-    </div>
-@endif
+                                            @if(count($payments) > 1)
+                                                <button type="button" wire:click="removePaymentRow({{ $index }})" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="mb-4">
                             <label class="form-label text-body">Notes / Remarks</label>
@@ -346,12 +279,12 @@
 
                         <button
                             type="button"
-                            wire:click="confirmExchange"
+                            wire:click="updateExchange"
                             wire:loading.attr="disabled"
                             class="btn btn-primary w-100 py-3 fs-6 fw-bold rounded-pill shadow-sm"
                         >
-                            <span wire:loading.remove wire:target="confirmExchange"><i class="bi bi-check-circle me-1"></i> Complete Exchange</span>
-                            <span wire:loading wire:target="confirmExchange"><span class="spinner-border spinner-border-sm me-1"></span> Processing...</span>
+                            <span wire:loading.remove wire:target="updateExchange"><i class="bi bi-check-circle me-1"></i> Update Exchange</span>
+                            <span wire:loading wire:target="updateExchange"><span class="spinner-border spinner-border-sm me-1"></span> Updating...</span>
                         </button>
                     </div>
                 </div>
