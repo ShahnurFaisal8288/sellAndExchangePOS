@@ -13,87 +13,11 @@
     </div>
 
     {{-- Stat cards --}}
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
-                        <i class="bi bi-cash-stack fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Today's Sales</div>
-                        <div class="fs-5 fw-bold">৳{{ number_format($todaySummary->revenue, 2) }}</div>
-                        <div class="text-muted small">{{ $todaySummary->invoice_count }} invoice(s)</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
-                        <i class="bi bi-wallet2 fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Collected Today</div>
-                        <div class="fs-5 fw-bold">৳{{ number_format($todaySummary->collected, 2) }}</div>
-                        <div class="text-danger small">Due: ৳{{ number_format($todaySummary->due, 2) }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
-                        <i class="bi bi-calendar3 fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">This Month</div>
-                        <div class="fs-5 fw-bold">৳{{ number_format($monthRevenue, 2) }}</div>
-                        <div class="text-muted small">Total revenue</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
-                        <i class="bi bi-box-seam fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Stock Value</div>
-                        <div class="fs-5 fw-bold">৳{{ number_format($stockValue, 2) }}</div>
-                        <div class="text-muted small">{{ $totalProducts }} active products</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- Due / risk row --}}
     <div class="row g-3 mb-3">
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted small">Receivable (customers owe)</div>
-                    <div class="fs-5 fw-bold text-danger">৳{{ number_format($totalReceivableDue, 2) }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-xl-3">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted small">Payable (owed to suppliers)</div>
-                    <div class="fs-5 fw-bold text-danger">৳{{ number_format($totalPayableDue, 2) }}</div>
-                </div>
-            </div>
-        </div>
+
         {{-- <div class="col-6 col-xl-3">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
@@ -222,6 +146,7 @@
         </div>
     </div>
 
+
     {{-- Chart script lives inside the component root on purpose — this avoids
          depending on the layout having @stack('scripts'), which is a common
          reason this chart renders blank (the script never loads at all). --}}
@@ -273,8 +198,84 @@
         })();
     </script>
 
-</div><div>
-
 </div>
+<div class="row g-3 mt-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                        <i class="bi bi-cash-stack fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Today's Sales</div>
+                        <div class="fs-5 fw-bold">৳{{ number_format($todaySummary->revenue, 2) }}</div>
+                        <div class="text-muted small">{{ $todaySummary->invoice_count }} invoice(s)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Collected Today</div>
+                        <div class="fs-5 fw-bold">৳{{ number_format($todaySummary->collected, 2) }}</div>
+                        <div class="text-danger small">Due: ৳{{ number_format($todaySummary->due, 2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                        <i class="bi bi-calendar3 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">This Month</div>
+                        <div class="fs-5 fw-bold">৳{{ number_format($monthRevenue, 2) }}</div>
+                        <div class="text-muted small">Total revenue</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                        <i class="bi bi-box-seam fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Stock Value</div>
+                        <div class="fs-5 fw-bold">৳{{ number_format($stockValue, 2) }}</div>
+                        <div class="text-muted small">{{ $totalProducts }} active products</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Receivable (customers owe)</div>
+                    <div class="fs-5 fw-bold text-danger">৳{{ number_format($totalReceivableDue, 2) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Payable (owed to suppliers)</div>
+                    <div class="fs-5 fw-bold text-danger">৳{{ number_format($totalPayableDue, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
